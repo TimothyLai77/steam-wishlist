@@ -1,5 +1,5 @@
 # other
-
+*.db
 .env
 .vscode/
 # MacOS
