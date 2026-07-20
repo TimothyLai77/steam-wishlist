@@ -9,18 +9,10 @@ const sqliteUrl = process.env.DATABASE_URL ?? "file:./dev.db";
 // Create adapter with config directly
 const adapter = new PrismaLibSql({ url: sqliteUrl });
 
-// Singleton: reuse the same Prisma client across modules and dev restarts
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    adapter,
-    log: ["warn", "error"],
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+// Singleton Prisma client
+export const prisma = new PrismaClient({
+  adapter,
+  log: ["warn", "error"],
+});
 
 export default prisma;
