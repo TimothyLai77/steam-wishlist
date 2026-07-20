@@ -19,11 +19,11 @@ A private, self-hosted Steam wishlist management web application that allows 1-3
 ### Backend
 - **Runtime:** Node.js (LTS)
 - **Framework:** Express.js
-- **Language:** TypeScript
-- **ORM:** Prisma
-- **Database:** SQLite (file-based)
+- **Language:** TypeScript (ES modules, `module: "NodeNext"`)
+- **ORM:** Prisma 7.x
+- **Database:** SQLite (via LibSQL adapter)
 - **Auth:** bcryptjs for password hashing, JWT for session management
-- **HTTP Client:** node-fetch / axios for Steam API calls
+- **HTTP Client:** axios for Steam API calls
 
 ### Frontend
 - **Framework:** React 18+
@@ -279,8 +279,8 @@ services:
 
 ### Backend
 ```
-NODE_ENV=production
-PORT=3000
+NODE_ENV=development
+PORT=4000
 DATABASE_URL=file:./dev.db
 JWT_SECRET=<strong-random-secret>
 JWT_EXPIRES_IN=7d
@@ -288,7 +288,7 @@ JWT_EXPIRES_IN=7d
 
 ### Frontend
 ```
-VITE_API_URL=http://localhost:3000/api
+VITE_API_URL=http://localhost:4000/api
 ```
 
 ---
@@ -297,8 +297,8 @@ VITE_API_URL=http://localhost:3000/api
 
 ### Phase 1: Foundation
 - [ ] Set up Docker Compose structure
-- [ ] Initialize backend with Express + TypeScript + Prisma
-- [ ] Define and migrate database schema
+- [x] Initialize backend with Express + TypeScript + Prisma
+- [x] Define and migrate database schema
 - [ ] Implement user registration and login with JWT
 - [ ] Initialize frontend with Vite + React + Redux Toolkit + Ant Design
 - [ ] Create basic routing and protected route guards
@@ -352,3 +352,34 @@ VITE_API_URL=http://localhost:3000/api
 - SQLite file is single-file; easy to backup
 - Mount as Docker volume for persistence
 - Consider adding a simple export endpoint
+
+---
+
+## 13. Implementation Notes
+
+### Current Progress (Phase 1 - Backend Foundation)
+
+#### Completed
+- [x] Backend initialized with Express + TypeScript + ES modules (`"type": "module"`)
+- [x] TypeScript configured with `module: "NodeNext"`, `verbatimModuleSyntax: true`
+- [x] Prisma schema defined (`User`, `Wishlist`, `WishlistGame` models)
+- [x] Database migrated successfully with Prisma 7
+- [x] Prisma client singleton set up with LibSQL adapter (`@prisma/adapter-libsql`)
+- [x] Basic Express app running with `/health` and `/db` endpoints
+- [x] Backend configured to run on port `4000`
+
+#### Prisma 7 Specifics
+- Datasource `url` moved from `schema.prisma` to `prisma.config.ts`
+- PrismaClient requires a driver adapter for database connections
+- Using `@prisma/adapter-libsql` with config object `{ url: DATABASE_URL }`
+- Schema uses Prisma's `Int` type (no `@db.Int` native type for SQLite)
+
+#### Module System
+- Backend uses ES modules (`"type": "module"` in package.json)
+- TypeScript config: `module: "NodeNext"`, `moduleResolution: "NodeNext"`, `verbatimModuleSyntax: true`
+- `dotenv` loaded in both `index.ts` and `prisma.ts` to ensure env vars are available at import time
+
+#### Next Steps
+- Create auth utilities (`bcrypt.ts`, `jwt.ts`)
+- Create auth middleware (JWT validation)
+- Implement auth routes (register, login, me, logout)

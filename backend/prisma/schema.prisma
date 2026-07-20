@@ -1,0 +1,49 @@
+// This is your Prisma schema file,
+// learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String     @id @default(uuid())
+  username     String     @unique
+  passwordHash String
+  steamId      String?
+  wishlists    Wishlist[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Wishlist {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isDefault   Boolean        @default(false)
+  games       WishlistGame[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model WishlistGame {
+  steamId        Int
+  wishlistId     String
+  wishlist       Wishlist  @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  name           String
+  currentPrice   Decimal?
+  originalPrice  Decimal?
+  discountPercent Int?
+  currency       String    @default("USD")
+  imageUrl       String?
+  addedAt        DateTime  @default(now())
+  priceUpdatedAt DateTime?
+  notes          String?
+
+  @@id([steamId, wishlistId])
+}
