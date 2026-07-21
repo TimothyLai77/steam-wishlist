@@ -367,6 +367,9 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Prisma client singleton set up with LibSQL adapter (`@prisma/adapter-libsql`)
 - [x] Basic Express app running with `/health` and `/db` endpoints
 - [x] Backend configured to run on port `4000`
+- [x] Auth utilities created:
+  - `utils/bcrypt.ts` — password hashing (`hashPassword`, `comparePassword`) with bcryptjs (cost factor 12)
+  - `utils/jwt.ts` — JWT signing (`signToken`, `verifyToken`) using `jsonwebtoken` with 7-day expiry
 
 #### Prisma 7 Specifics
 - Datasource `url` moved from `schema.prisma` to `prisma.config.ts`
@@ -380,6 +383,7 @@ VITE_API_URL=http://localhost:4000/api
 - `dotenv` loaded in both `index.ts` and `prisma.ts` to ensure env vars are available at import time
 
 #### Next Steps
-- Create auth utilities (`bcrypt.ts`, `jwt.ts`)
-- Create auth middleware (JWT validation)
-- Implement auth routes (register, login, me, logout)
+- Create auth middleware (`middleware/auth.middleware.ts`) — JWT validation for protected routes
+- Implement auth routes (`routes/auth.routes.ts`) — register, login, me, logout
+- Implement auth controller (`controllers/auth.controller.ts`) — user registration, login logic
+- Set up input validation with zod on auth endpoints
