@@ -105,7 +105,7 @@ services:
 ### Authentication
 - `POST /api/auth/register` — Create new user (username/password)
 - `POST /api/auth/login` — Authenticate and receive JWT
-- `GET /api/auth/me` — Get current user profile (protected)
+- `GET /api/auth/profile` — Get current user profile (protected)
 - `POST /api/auth/logout` — Invalidate session / client-side token removal
 
 ### Wishlists
@@ -371,7 +371,7 @@ VITE_API_URL=http://localhost:4000/api
   - `utils/jwt.ts` — JWT signing/verification (`signToken`, `verifyToken`) with typed `JwtPayload`
 - [x] Error handling middleware (`middleware/error.middleware.ts`) — custom `AppError`, global handler
 - [x] Auth middleware (`middleware/auth.middleware.ts`) — JWT validation, attaches typed `req.user`
-- [x] Auth routes (`routes/auth.routes.ts`) — `POST /register`, `POST /login`, `GET /me`
+- [x] Auth routes (`routes/auth.routes.ts`) — `POST /register`, `POST /login`, `GET /profile`
 - [x] Auth controller (`controllers/auth.controller.ts`) — thin HTTP layer, delegates to service
 - [x] User service (`services/user.service.ts`) — business logic for register/login/profile
   - Creates default "My Wishlist" on user registration
