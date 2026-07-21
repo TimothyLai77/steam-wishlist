@@ -59,7 +59,7 @@ export const login = async (
 /**
  * Get the current authenticated user's profile.
  */
-export const getMe = async (
+export const getProfile = async (
   req: Request,
   res: Response,
   next: NextFunction,
