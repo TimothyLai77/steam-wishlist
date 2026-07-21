@@ -1,6 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
 import { prisma } from "./config/prisma.js";
+import { errorHandler } from "./middleware/error.middleware.js";
+import authRoutes from "./routes/auth.routes.js";
 
 dotenv.config();
 
@@ -9,6 +11,12 @@ const PORT = process.env.PORT ?? 4000;
 
 // Basic middleware
 app.use(express.json());
+
+// Routes
+app.use("/api/auth", authRoutes);
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
 
 // Health check
 app.get("/health", (_req, res) => {

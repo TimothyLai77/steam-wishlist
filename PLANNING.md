@@ -299,7 +299,7 @@ VITE_API_URL=http://localhost:4000/api
 - [ ] Set up Docker Compose structure
 - [x] Initialize backend with Express + TypeScript + Prisma
 - [x] Define and migrate database schema
-- [ ] Implement user registration and login with JWT
+- [x] Implement user registration and login with JWT
 - [ ] Initialize frontend with Vite + React + Redux Toolkit + Ant Design
 - [ ] Create basic routing and protected route guards
 
@@ -335,7 +335,6 @@ VITE_API_URL=http://localhost:4000/api
 ### Security
 - Passwords hashed with bcrypt (never stored plain)
 - JWT with reasonable expiry
-- Input validation with zod on all endpoints
 - Rate limiting on Steam API calls to avoid abuse
 - CORS configured for frontend origin only
 
@@ -369,7 +368,20 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Backend configured to run on port `4000`
 - [x] Auth utilities created:
   - `utils/bcrypt.ts` — password hashing (`hashPassword`, `comparePassword`) with bcryptjs (cost factor 12)
-  - `utils/jwt.ts` — JWT signing (`signToken`, `verifyToken`) using `jsonwebtoken` with 7-day expiry
+  - `utils/jwt.ts` — JWT signing/verification (`signToken`, `verifyToken`) with typed `JwtPayload`
+- [x] Error handling middleware (`middleware/error.middleware.ts`) — custom `AppError`, global handler
+- [x] Auth middleware (`middleware/auth.middleware.ts`) — JWT validation, attaches typed `req.user`
+- [x] Auth routes (`routes/auth.routes.ts`) — `POST /register`, `POST /login`, `GET /me`
+- [x] Auth controller (`controllers/auth.controller.ts`) — thin HTTP layer, delegates to service
+- [x] User service (`services/user.service.ts`) — business logic for register/login/profile
+  - Creates default "My Wishlist" on user registration
+
+#### Architecture Pattern
+Backend follows a consistent layering pattern:
+- **Controllers**: parse HTTP requests, basic input checks, call services, return responses
+- **Services**: business logic, DB operations, token/password handling
+- **Utils**: pure helpers (bcrypt, jwt, future steam API calls)
+- **Middleware**: cross-cutting concerns (auth, error handling)
 
 #### Prisma 7 Specifics
 - Datasource `url` moved from `schema.prisma` to `prisma.config.ts`
@@ -383,7 +395,7 @@ VITE_API_URL=http://localhost:4000/api
 - `dotenv` loaded in both `index.ts` and `prisma.ts` to ensure env vars are available at import time
 
 #### Next Steps
-- Create auth middleware (`middleware/auth.middleware.ts`) — JWT validation for protected routes
-- Implement auth routes (`routes/auth.routes.ts`) — register, login, me, logout
-- Implement auth controller (`controllers/auth.controller.ts`) — user registration, login logic
-- Set up input validation with zod on auth endpoints
+- Initialize frontend with Vite + React + Redux Toolkit + Ant Design
+- Create basic routing and protected route guards
+- Implement wishlist CRUD endpoints (routes + controller + service)
+- Implement Steam API service (`services/steam.service.ts`)
