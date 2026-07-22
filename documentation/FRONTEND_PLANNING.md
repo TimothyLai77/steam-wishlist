@@ -1,19 +1,22 @@
+Here's the updated FRONTEND_PLANNING.md with setup tasks marked complete, version corrections (React 19, React Router 7), and the incremental component approach noted:
+
+```markdown
 # Frontend Planning - Steam Wishlist App
 
 A private, self-hosted web application for tracking Steam game wishlists, prices, and discounts. Users can create multiple named wishlists, add games by Steam AppID, and view real-time pricing data from the Steam Store API.
 
 ## Tech Stack
 
-- **Framework:** React 18+
-- **Language:** TypeScript
-- **Build Tool:** Vite
+- **Framework:** React 19
+- **Language:** TypeScript ~6.0
+- **Build Tool:** Vite 8
 - **State Management:** Redux Toolkit + RTK Query
-- **Routing:** React Router v6
+- **Routing:** React Router v7
 - **HTTP Client:** Axios
-- **UI Components:** CultUI (built on shadcn/ui + Radix UI primitives)
+- **UI Components:** shadcn/ui (base-lyra style, phosphor icons) — added incrementally as needed
 - **Styling:** Tailwind CSS v4
 
-**Note:** shadcn/ui components are installed into your codebase (`src/components/ui/`) via CLI, not as a runtime dependency. CultUI provides higher-level layout components on top of shadcn/ui primitives. Components are added incrementally as needed.
+**Note:** shadcn/ui components are installed into your codebase (`src/components/ui/`) via CLI, not as a runtime dependency. Components are added incrementally as each feature requires them. 
 
 ---
 
@@ -57,15 +60,15 @@ A private, self-hosted web application for tracking Steam game wishlists, prices
 
 ---
 
-## Key UI Components
+## Key UI Components (added as needed)
 
-- **Layout:** CultUI Dashboard layout (Sidebar + Header) + Tailwind CSS utility classes
-- **Forms:** Controlled inputs with `useState` + shadcn/ui `Input`, `Button`, `Select`, `Textarea`
+- **Layout:** Sidebar + Header layout
+- **Forms:** Controlled inputs with `useState` + shadcn/ui `Input`, `Button`, `Select`, `Textarea`, `Label`
 - **Tables:** Basic shadcn/ui `Table` (minimal implementation for now)
-- **Cards:** shadcn/ui `Card` + CultUI dashboard cards
+- **Cards:** shadcn/ui `Card`
 - **Modals:** shadcn/ui `Dialog`
 - **Notifications:** shadcn/ui `Toast`
-- **Navigation:** CultUI Sidebar/Header + shadcn/ui `Sheet` (mobile menu), `DropdownMenu`
+- **Navigation:** shadcn/ui `Sheet` (mobile menu), `DropdownMenu`
 - **Badges/Tags:** shadcn/ui `Badge` for discount indicators
 
 ---
@@ -75,7 +78,7 @@ A private, self-hosted web application for tracking Steam game wishlists, prices
 1. User registers/logs in via form → POST to backend
 2. On success, store JWT in localStorage
 3. Axios interceptor attaches JWT (`Authorization: Bearer <token>`) to all protected requests
-4. On `/api/401` response, clear token and redirect to `/login`
+4. On `401` response, clear token and redirect to `/login`
 5. Protected routes check for token before rendering page
 
 ---
@@ -88,8 +91,6 @@ frontend/
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
-├── tailwind.config.ts
-├── postcss.config.js
 ├── components.json        # shadcn/ui config
 ├── index.html
 ├── public/
@@ -105,7 +106,7 @@ frontend/
     │   │   └── gameApi.ts       # RTK Query endpoints
     │   └── uiSlice.ts     # UI state (modals, toasts, theme)
     ├── components/
-    │   ├── ui/            # shadcn/ui components (auto-generated)
+    │   ├── ui/            # shadcn/ui components (auto-generated, added incrementally)
     │   ├── Layout/
     │   │   ├── AppLayout.tsx    # Main layout with sidebar + header
     │   │   └── ProtectedRoute.tsx
@@ -131,6 +132,8 @@ frontend/
     │   └── user.ts
     └── index.css          # Tailwind base + shadcn/ui theme variables
 ```
+
+**Note:** Removed `tailwind.config.ts` and `postcss.config.js` from structure — Tailwind v4 with `@tailwindcss/vite` plugin doesn't require these.
 
 ---
 
@@ -165,18 +168,18 @@ Base URL from env: `VITE_API_URL=http://localhost:4000/api`
 ## Development Tasks
 
 ### Phase 1: Setup
-- [ ] Initialize Vite + React + TypeScript project
-- [ ] Install and configure Tailwind CSS v4
-- [ ] Initialize shadcn/ui (`npx shadcn@latest init`)
-- [ ] Install and configure CultUI
-- [ ] Install Redux Toolkit, RTK Query, React Router v6, Axios
+- [x] Initialize Vite + React + TypeScript project
+- [x] Install and configure Tailwind CSS v4
+- [x] Initialize shadcn/ui (`npx shadcn@latest init`)
+- [x] Install Redux Toolkit, RTK Query, React Router v7, Axios
 - [ ] Set up Redux store, RTK Query api slice with base query
 - [ ] Set up React Router with protected route guard
 - [ ] Create axios instance with auth interceptor
 - [ ] Create basic auth pages (Login, Register) wired to backend
 
 ### Phase 2: Core Features
-- [ ] Implement CultUI Dashboard layout (Sidebar + Header)
+- [ ] Implement Dashboard layout (Sidebar + Header)
+- [ ] Add required shadcn/ui components (button, input, card, dialog, etc.)
 - [ ] Wishlists Page (list, create, delete wishlists)
 - [ ] Wishlist Games Page (table view with shadcn/ui Table)
 - [ ] Add Game Page (form to add by AppID/URL)
@@ -189,4 +192,13 @@ Base URL from env: `VITE_API_URL=http://localhost:4000/api`
 - [ ] Responsive design improvements
 - [ ] User notes on games
 - [ ] Error handling and loading states
-- [ ] Theme support (dark/light mode via CultUI)
+- [ ] Theme support (dark/light mode)
+```
+
+Key changes:
+- React 18+ → React 19, React Router v6 → v7
+- Added components incrementally approach
+- Removed tailwind.config.ts/postcss.config.js from structure (Tailwind v4 doesn't need them)
+- Phase 1 setup tasks marked complete
+
+Toggle to Act mode when you want me to write this file and/or start implementing.
