@@ -10,7 +10,7 @@ A private, self-hosted Steam wishlist management web application that allows 1-3
 - **Each user can create and manage multiple named wishlists (e.g., "Must Haves", "On Sale Watch", "Co-op Games")**
 - Query real-time game data (price, discounts, release info) from Steam API
 - Self-contained Docker Compose deployment
-- Clean, modern UI with Ant Design
+- Clean, modern UI with CultUI, shadcn/ui and Tailwind CSS
 
 ---
 
@@ -31,7 +31,8 @@ A private, self-hosted Steam wishlist management web application that allows 1-3
 - **State Management:** Redux Toolkit + RTK Query
 - **Routing:** React Router v6
 - **HTTP Client:** Axios
-- **UI Library:** Ant Design 5.x
+- **UI Components:** CultUI (built on shadcn/ui + Radix UI primitives)
+- **Styling:** Tailwind CSS v4
 - **Build Tool:** Vite
 
 ### Infrastructure
@@ -165,15 +166,17 @@ services:
 - **wishlistSlice / useWishlistApi** — RTK Query for CRUD operations on games
 - **uiSlice** — Global UI state (modals, notifications, theme)
 
-### Key UI Components (Ant Design)
-- Layout: `Layout`, `Sider`, `Header`, `Content`
-- Forms: `Form`, `Input`, `Button`, `Select`
-- Tables: `Table` with pagination and sorting
-- Cards: `Card` for game details and dashboard stats
-- Modals: `Modal` for add/edit actions
-- Notifications: `message`, `notification` for feedback
-- Links: `Link`, `Button` for external links (Steam Store, SteamDB)
-- Badges: `Tag` for discount indicators
+### Key UI Components (CultUI / shadcn/ui)
+- Layout: CultUI Dashboard layout (Sidebar + Header) + Tailwind CSS utility classes
+- Forms: Controlled inputs with `useState` + shadcn/ui `Input`, `Button`, `Select`, `Textarea`
+- Tables: Basic shadcn/ui `Table` (minimal implementation for now)
+- Cards: shadcn/ui `Card` + CultUI dashboard cards
+- Modals: shadcn/ui `Dialog`
+- Notifications: shadcn/ui `Toast`
+- Navigation: CultUI Sidebar/Header + shadcn/ui `Sheet` (mobile menu), `DropdownMenu`
+- Badges/Tags: shadcn/ui `Badge` for discount indicators
+
+**Note:** shadcn/ui components are installed into your codebase (`src/components/ui/`) via CLI, not as a runtime dependency. CultUI provides higher-level layout components on top of shadcn/ui primitives. Components are added incrementally as needed.
 
 ### Routing (React Router)
 ```
@@ -300,7 +303,7 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Initialize backend with Express + TypeScript + Prisma
 - [x] Define and migrate database schema
 - [x] Implement user registration and login with JWT
-- [ ] Initialize frontend with Vite + React + Redux Toolkit + Ant Design
+- [ ] Initialize frontend with Vite + React + Redux Toolkit + CultUI/shadcn/ui + Tailwind CSS
 - [ ] Create basic routing and protected route guards
 
 ### Phase 2: Core Wishlist Features
@@ -395,7 +398,7 @@ Backend follows a consistent layering pattern:
 - `dotenv` loaded in both `index.ts` and `prisma.ts` to ensure env vars are available at import time
 
 #### Next Steps
-- Initialize frontend with Vite + React + Redux Toolkit + Ant Design
+- Initialize frontend with Vite + React + Redux Toolkit + CultUI/shadcn/ui + Tailwind CSS
 - Create basic routing and protected route guards
 - Implement wishlist CRUD endpoints (routes + controller + service)
 - Implement Steam API service (`services/steam.service.ts`)
