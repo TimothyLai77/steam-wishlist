@@ -10,7 +10,7 @@ A private, self-hosted Steam wishlist management web application that allows 1-3
 - **Each user can create and manage multiple named wishlists (e.g., "Must Haves", "On Sale Watch", "Co-op Games")**
 - Query real-time game data (price, discounts, release info) from Steam API
 - Self-contained Docker Compose deployment
-- Clean, modern UI with CultUI, shadcn/ui and Tailwind CSS
+- Clean, modern UI with shadcn/ui and Tailwind CSS
 
 ---
 
@@ -26,14 +26,13 @@ A private, self-hosted Steam wishlist management web application that allows 1-3
 - **HTTP Client:** axios for Steam API calls
 
 ### Frontend
-- **Framework:** React 18+
-- **Language:** TypeScript
-- **State Management:** Redux Toolkit + RTK Query
-- **Routing:** React Router v6
-- **HTTP Client:** Axios
-- **UI Components:** CultUI (built on shadcn/ui + Radix UI primitives)
+- **Framework:** React 19
+- **Language:** TypeScript ~6.0
+- **State Management:** Redux Toolkit + RTK Query (using `fetchBaseQuery`)
+- **Routing:** React Router v7
+- **UI Components:** shadcn/ui (base-lyra style, phosphor icons) — added incrementally as needed
 - **Styling:** Tailwind CSS v4
-- **Build Tool:** Vite
+- **Build Tool:** Vite 8
 
 ### Infrastructure
 - **Containerization:** Docker + Docker Compose
@@ -162,22 +161,22 @@ services:
    - SteamDB price history
 
 ### State Management (Redux Toolkit)
-- **api** — Single RTK Query API with `fetchBaseQuery` for all data fetching (auth, wishlists, games)
+- **api/** — RTK Query API modules organized by domain (auth, wishlists, games), all using a shared `fetchBaseQuery` configuration for HTTP requests, headers, and token injection
 - **uiSlice** — Global UI state (modals, notifications, theme)
 
 **Note:** RTK Query manages its own state (loading, error, cached data) via generated hooks like `usePostLoginMutation()` and `useGetProfileQuery()`. Separate slices for auth or wishlist data are not needed — RTK Query handles caching, invalidation, and request state automatically. Only use `createSlice` for UI state (modals, theme, toasts) that doesn't come from API responses.
 
-### Key UI Components (CultUI / shadcn/ui)
-- Layout: CultUI Dashboard layout (Sidebar + Header) + Tailwind CSS utility classes
-- Forms: Controlled inputs with `useState` + shadcn/ui `Input`, `Button`, `Select`, `Textarea`
+### Key UI Components (shadcn/ui)
+- Layout: Sidebar + Header layout with shadcn/ui primitives + Tailwind CSS utility classes
+- Forms: Controlled inputs with `useState` + shadcn/ui `Input`, `Button`, `Select`, `Textarea`, `Label`
 - Tables: Basic shadcn/ui `Table` (minimal implementation for now)
-- Cards: shadcn/ui `Card` + CultUI dashboard cards
+- Cards: shadcn/ui `Card`
 - Modals: shadcn/ui `Dialog`
 - Notifications: shadcn/ui `Toast`
-- Navigation: CultUI Sidebar/Header + shadcn/ui `Sheet` (mobile menu), `DropdownMenu`
+- Navigation: shadcn/ui `Sheet` (mobile menu), `DropdownMenu`
 - Badges/Tags: shadcn/ui `Badge` for discount indicators
 
-**Note:** shadcn/ui components are installed into your codebase (`src/components/ui/`) via CLI, not as a runtime dependency. CultUI provides higher-level layout components on top of shadcn/ui primitives. Components are added incrementally as needed.
+**Note:** shadcn/ui components are installed into your codebase (`src/components/ui/`) via CLI, not as a runtime dependency. Components are added incrementally as each feature requires them.
 
 ### Routing (React Router)
 ```
@@ -198,7 +197,7 @@ services:
 2. Password is hashed using bcryptjs (cost factor 10-12)
 3. On login, server validates credentials and issues JWT
 4. JWT stored in HttpOnly cookie or localStorage (recommend localStorage for SPA simplicity)
-5. Frontend Axios interceptor attaches JWT to protected requests
+5. Frontend `fetchBaseQuery` `prepareHeaders` callback reads JWT from localStorage and attaches `Authorization: Bearer <token>` to all requests
 6. Express middleware validates JWT on protected routes
 7. Token expiry: 7 days, with optional refresh
 
@@ -253,27 +252,30 @@ services:
 │       ├── App.tsx
 │       ├── router.tsx               # React Router setup
 │       ├── store/                   # Redux Toolkit
-│       │   ├── store.ts
-│       │   ├── authSlice.ts
+│       │   ├── store.ts             # Redux store config + RTK Query plugins
 │       │   ├── api/
-│       │   │   └── wishlistApi.ts   # RTK Query for games
-│       │   └── uiSlice.ts
+│       │   │   ├── authApi.ts       # RTK Query endpoints (register, login, profile)
+│       │   │   ├── wishlistApi.ts   # RTK Query endpoints
+│       │   │   └── gameApi.ts       # RTK Query endpoints
+│       │   └── uiSlice.ts           # UI state (modals, toasts, theme)
 │       ├── pages/
 │       │   ├── LoginPage.tsx
 │       │   ├── RegisterPage.tsx
 │       │   ├── DashboardPage.tsx
-│       │   ├── WishlistPage.tsx
+│       │   ├── WishlistsPage.tsx
+│       │   ├── WishlistGamesPage.tsx
+│       │   ├── AddGamePage.tsx
 │       │   └── GameDetailPage.tsx
 │       ├── components/
+│       │   ├── ui/                  # shadcn/ui components (auto-generated)
 │       │   ├── Layout/
 │       │   ├── GameCard.tsx
 │       │   └── GameTable.tsx
 │       ├── hooks/
 │       │   └── useAuth.ts
-│       ├── services/
-│       │   └── axiosInstance.ts
 │       └── types/
 │           ├── game.ts
+│           ├── wishlist.ts
 │           └── user.ts
 ```
 
@@ -304,7 +306,7 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Initialize backend with Express + TypeScript + Prisma
 - [x] Define and migrate database schema
 - [x] Implement user registration and login with JWT
-- [ ] Initialize frontend with Vite + React + Redux Toolkit + CultUI/shadcn/ui + Tailwind CSS
+- [ ] Initialize frontend with Vite + React + Redux Toolkit + shadcn/ui + Tailwind CSS
 - [ ] Create basic routing and protected route guards
 
 ### Phase 2: Core Wishlist Features
@@ -399,7 +401,7 @@ Backend follows a consistent layering pattern:
 - `dotenv` loaded in both `index.ts` and `prisma.ts` to ensure env vars are available at import time
 
 #### Next Steps
-- Initialize frontend with Vite + React + Redux Toolkit + CultUI/shadcn/ui + Tailwind CSS
+- Initialize frontend with Vite + React + Redux Toolkit + shadcn/ui + Tailwind CSS
 - Create basic routing and protected route guards
 - Implement wishlist CRUD endpoints (routes + controller + service)
 - Implement Steam API service (`services/steam.service.ts`)

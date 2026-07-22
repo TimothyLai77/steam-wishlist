@@ -10,9 +10,8 @@ A private, self-hosted web application for tracking Steam game wishlists, prices
 - **Framework:** React 19
 - **Language:** TypeScript ~6.0
 - **Build Tool:** Vite 8
-- **State Management:** Redux Toolkit + RTK Query
+- **State Management:** Redux Toolkit + RTK Query (using `fetchBaseQuery`)
 - **Routing:** React Router v7
-- **HTTP Client:** Axios
 - **UI Components:** shadcn/ui (base-lyra style, phosphor icons) — added incrementally as needed
 - **Styling:** Tailwind CSS v4
 
@@ -54,7 +53,7 @@ A private, self-hosted web application for tracking Steam game wishlists, prices
 
 ## State Management (Redux Toolkit)
 
-- **api** — Single RTK Query API with `fetchBaseQuery` for all data fetching (auth, wishlists, games)
+- **api/** — RTK Query API modules organized by domain (auth, wishlists, games), all using a shared `fetchBaseQuery` configuration for HTTP requests, headers, and token injection
 - **uiSlice** — Global UI state (modals, notifications, theme)
 
 **Note:** RTK Query manages its own state (loading, error, cached data) via generated hooks like `usePostLoginMutation()` and `useGetProfileQuery()`. Separate slices for auth or wishlist data are not needed — RTK Query handles caching, invalidation, and request state automatically. Only use `createSlice` for UI state (modals, theme, toasts) that doesn't come from API responses.
@@ -76,10 +75,10 @@ A private, self-hosted web application for tracking Steam game wishlists, prices
 
 ## Authentication Flow (Client-Side)
 
-1. User registers/logs in via form → POST to backend
+1. User registers/logs in via form → POST to backend using RTK Query mutation
 2. On success, store JWT in localStorage
-3. Axios interceptor attaches JWT (`Authorization: Bearer <token>`) to all protected requests
-4. On `401` response, clear token and redirect to `/login`
+3. `fetchBaseQuery` `prepareHeaders` callback reads token from localStorage and attaches `Authorization: Bearer <token>` to all requests
+4. On `401` response from RTK Query, clear token and redirect to `/login`
 5. Protected routes check for token before rendering page
 
 ---
@@ -100,9 +99,9 @@ frontend/
     ├── App.tsx
     ├── router.tsx         # React Router setup + protected route guards
     ├── store/
-    │   ├── store.ts       # Redux store config
-    │   ├── authSlice.ts   # Auth state + JWT handling
+    │   ├── store.ts       # Redux store config + RTK Query api plugins
     │   ├── api/
+    │   │   ├── authApi.ts       # RTK Query endpoints (register, login, profile)
     │   │   ├── wishlistApi.ts   # RTK Query endpoints
     │   │   └── gameApi.ts       # RTK Query endpoints
     │   └── uiSlice.ts     # UI state (modals, toasts, theme)
@@ -125,8 +124,6 @@ frontend/
     ├── hooks/
     │   ├── useAuth.ts
     │   └── ...
-    ├── services/
-    │   └── axiosInstance.ts  # Axios with auth interceptor
     ├── types/
     │   ├── game.ts
     │   ├── wishlist.ts
@@ -172,10 +169,10 @@ Base URL from env: `VITE_API_URL=http://localhost:4000/api`
 - [x] Initialize Vite + React + TypeScript project
 - [x] Install and configure Tailwind CSS v4
 - [x] Initialize shadcn/ui (`npx shadcn@latest init`)
-- [x] Install Redux Toolkit, RTK Query, React Router v7, Axios
-- [ ] Set up Redux store, RTK Query api slice with base query
+- [x] Install Redux Toolkit, RTK Query, React Router v7
+- [ ] Set up Redux store with RTK Query plugin and shared baseQuery configuration
+- [ ] Create RTK Query API modules (authApi.ts, wishlistApi.ts, gameApi.ts) with endpoints
 - [ ] Set up React Router with protected route guard
-- [ ] Create axios instance with auth interceptor
 - [ ] Create basic auth pages (Login, Register) wired to backend
 
 ### Phase 2: Core Features
