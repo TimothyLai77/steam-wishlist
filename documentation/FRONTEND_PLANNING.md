@@ -53,10 +53,18 @@ A private, self-hosted web application for tracking Steam game wishlists, prices
 
 ## State Management (Redux Toolkit)
 
-- **api/** — RTK Query API modules organized by domain (auth, wishlists, games), all using a shared `fetchBaseQuery` configuration for HTTP requests, headers, and token injection
+- **app/services/api.ts** — Central `createApi()` with shared `fetchBaseQuery` configuration (base URL, token injection, tag types). No endpoints defined here.
+- **app/services/\*.ts** — Domain-specific API modules (authApi, wishlistApi, gameApi) using `injectEndpoints()` on the central API instance. Keeps endpoints organized by domain while sharing one baseQuery and reducer path.
+- **features/auth/authSlice.ts** — Dedicated slice for authentication state (user, status, error). Uses `extraReducers` with `addMatcher()` on RTK Query endpoints (e.g., `authApi.endpoints.postLogin.matchPending`) to keep auth-related UI state in sync with API operations.
+- **features/auth/authApi.ts** — (Optional colocated helper, or use centralized authApi from services)
 - **uiSlice** — Global UI state (modals, notifications, theme)
 
-**Note:** RTK Query manages its own state (loading, error, cached data) via generated hooks like `usePostLoginMutation()` and `useGetProfileQuery()`. Separate slices for auth or wishlist data are not needed — RTK Query handles caching, invalidation, and request state automatically. Only use `createSlice` for UI state (modals, theme, toasts) that doesn't come from API responses.
+**RTK Query + authSlice Pattern:** RTK Query manages cached API data (loading, error, query results) via generated hooks. The `authSlice` stores derived/auth-related state needed across the app:
+- Current user object (persisted across navigation)
+- Authentication status (idle/loading/succeeded/failed)
+- Error messages for login failures
+
+This avoids having to rely on `useGetProfileQuery()` state everywhere while still leveraging RTK Query's caching and invalidation for the actual API calls.
 
 ---
 
@@ -98,13 +106,27 @@ frontend/
     ├── main.tsx
     ├── App.tsx
     ├── router.tsx         # React Router setup + protected route guards
+    ├── app/
+    │   └── services/
+    │       ├── api.ts             # Central createApi() with baseQuery + tagTypes
+    │       ├── authApi.ts         # injectEndpoints for auth (register, login, profile)
+    │       ├── wishlistApi.ts     # injectEndpoints for wishlists CRUD
+    │       └── gameApi.ts         # injectEndpoints for games CRUD
     ├── store/
-    │   ├── store.ts       # Redux store config + RTK Query api plugins
-    │   ├── api/
-    │   │   ├── authApi.ts       # RTK Query endpoints (register, login, profile)
-    │   │   ├── wishlistApi.ts   # RTK Query endpoints
-    │   │   └── gameApi.ts       # RTK Query endpoints
-    │   └── uiSlice.ts     # UI state (modals, toasts, theme)
+    │   └── store.ts       # Redux store config (api reducer + authSlice + middleware)
+    ├── features/
+    │   ├── auth/
+    │   │   ├── authSlice.ts       # Auth state with matchers on authApi endpoints
+    │   │   ├── LoginPage.tsx
+    │   │   └── RegisterPage.tsx
+    │   ├── wishlists/
+    │   │   ├── WishlistsPage.tsx
+    │   │   ├── WishlistGamesPage.tsx
+    │   │   └── AddGamePage.tsx
+    │   ├── games/
+    │   │   └── GameDetailPage.tsx
+    │   └── dashboard/
+    │       └── DashboardPage.tsx
     ├── components/
     │   ├── ui/            # shadcn/ui components (auto-generated, added incrementally)
     │   ├── Layout/
@@ -112,15 +134,7 @@ frontend/
     │   │   └── ProtectedRoute.tsx
     │   ├── GameCard.tsx
     │   ├── GameTable.tsx
-    │   └── ...            # Feature-specific components
-    ├── pages/
-    │   ├── LoginPage.tsx
-    │   ├── RegisterPage.tsx
-    │   ├── DashboardPage.tsx
-    │   ├── WishlistsPage.tsx
-    │   ├── WishlistGamesPage.tsx
-    │   ├── AddGamePage.tsx
-    │   └── GameDetailPage.tsx
+    │   └── ...            # Shared components
     ├── hooks/
     │   ├── useAuth.ts
     │   └── ...
@@ -129,6 +143,71 @@ frontend/
     │   ├── wishlist.ts
     │   └── user.ts
     └── index.css          # Tailwind base + shadcn/ui theme variables
+```
+
+**Architecture Notes:**
+- **API Layer**: Single `createApi()` in [`api.ts`](frontend/src/app/services/api.ts) with `fetchBaseQuery`. Domain endpoints injected via `injectEndpoints()` in separate service files. This avoids monolithic API definitions while sharing one baseQuery, reducer path, and tagTypes registry.
+- **Features**: React components organized by feature domain. Each feature imports hooks from centralized API services (e.g., `features/auth/LoginPage.tsx` uses `usePostLoginMutation` from `app/services/authApi.ts`).
+- **AuthSlice**: Uses RTK Query's `addMatcher()` pattern to sync auth state with API operations. Example:
+
+```ts
+// features/auth/authSlice.ts
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { authApi } from '../../app/services/authApi';
+import type { User } from '../../types/user';
+
+interface AuthState {
+  user: User | null;
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+const initialState: AuthState = {
+  user: null,
+  status: 'idle',
+  error: null,
+};
+
+const authSlice = createSlice({
+  name: 'auth',
+  initialState,
+  reducers: {
+    logout: (state) => {
+      state.user = null;
+      state.status = 'idle';
+      state.error = null;
+      localStorage.removeItem('token');
+    },
+    setUser: (state, action: PayloadAction<User>) => {
+      state.user = action.payload;
+      state.status = 'succeeded';
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addMatcher(authApi.endpoints.postLogin.matchPending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addMatcher(authApi.endpoints.postLogin.matchFulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.user = action.payload.user;
+        localStorage.setItem('token', action.payload.token);
+      })
+      .addMatcher(authApi.endpoints.postLogin.matchRejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message ?? 'Login failed';
+      })
+      .addMatcher(authApi.endpoints.postRegister.matchFulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.user = action.payload.user;
+        localStorage.setItem('token', action.payload.token);
+      });
+  },
+});
+
+export const { logout, setUser } = authSlice.actions;
+export default authSlice.reducer;
 ```
 
 **Note:** Removed `tailwind.config.ts` and `postcss.config.js` from structure — Tailwind v4 with `@tailwindcss/vite` plugin doesn't require these.
@@ -170,10 +249,14 @@ Base URL from env: `VITE_API_URL=http://localhost:4000/api`
 - [x] Install and configure Tailwind CSS v4
 - [x] Initialize shadcn/ui (`npx shadcn@latest init`)
 - [x] Install Redux Toolkit, RTK Query, React Router v7
-- [ ] Set up Redux store with RTK Query plugin and shared baseQuery configuration
-- [ ] Create RTK Query API modules (authApi.ts, wishlistApi.ts, gameApi.ts) with endpoints
+- [ ] Create centralized API instance in `app/services/api.ts` with `createApi()` + `fetchBaseQuery`
+- [ ] Create `app/services/authApi.ts` with `injectEndpoints()` for auth endpoints
+- [ ] Create `app/services/wishlistApi.ts` with `injectEndpoints()` for wishlist endpoints
+- [ ] Create `app/services/gameApi.ts` with `injectEndpoints()` for game endpoints
+- [ ] Create `features/auth/authSlice.ts` with matchers pattern for auth state
+- [ ] Update Redux store to use new API path and include authSlice
 - [ ] Set up React Router with protected route guard
-- [ ] Create basic auth pages (Login, Register) wired to backend
+- [ ] Create basic auth pages (Login, Register) in features/auth/ wired to backend
 
 ### Phase 2: Core Features
 - [ ] Implement Dashboard layout (Sidebar + Header)
@@ -198,5 +281,8 @@ Key changes:
 - Added components incrementally approach
 - Removed tailwind.config.ts/postcss.config.js from structure (Tailwind v4 doesn't need them)
 - Phase 1 setup tasks marked complete
+- Restructured API layer to use centralized `createApi()` + `injectEndpoints()` pattern
+- Added dedicated authSlice with matchers pattern
+- Features organized by domain (auth, wishlists, games, dashboard)
 
 Toggle to Act mode when you want me to write this file and/or start implementing.
