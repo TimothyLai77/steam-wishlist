@@ -162,9 +162,10 @@ services:
    - SteamDB price history
 
 ### State Management (Redux Toolkit)
-- **authSlice** — User session state, JWT token
-- **wishlistSlice / useWishlistApi** — RTK Query for CRUD operations on games
+- **api** — Single RTK Query API with `fetchBaseQuery` for all data fetching (auth, wishlists, games)
 - **uiSlice** — Global UI state (modals, notifications, theme)
+
+**Note:** RTK Query manages its own state (loading, error, cached data) via generated hooks like `usePostLoginMutation()` and `useGetProfileQuery()`. Separate slices for auth or wishlist data are not needed — RTK Query handles caching, invalidation, and request state automatically. Only use `createSlice` for UI state (modals, theme, toasts) that doesn't come from API responses.
 
 ### Key UI Components (CultUI / shadcn/ui)
 - Layout: CultUI Dashboard layout (Sidebar + Header) + Tailwind CSS utility classes
