@@ -249,12 +249,12 @@ Base URL from env: `VITE_API_URL=http://localhost:4000/api`
 - [x] Install and configure Tailwind CSS v4
 - [x] Initialize shadcn/ui (`npx shadcn@latest init`)
 - [x] Install Redux Toolkit, RTK Query, React Router v7
-- [ ] Create centralized API instance in `app/services/api.ts` with `createApi()` + `fetchBaseQuery`
-- [ ] Create `app/services/authApi.ts` with `injectEndpoints()` for auth endpoints
-- [ ] Create `app/services/wishlistApi.ts` with `injectEndpoints()` for wishlist endpoints
-- [ ] Create `app/services/gameApi.ts` with `injectEndpoints()` for game endpoints
-- [ ] Create `features/auth/authSlice.ts` with matchers pattern for auth state
-- [ ] Update Redux store to use new API path and include authSlice
+- [x] Create centralized API instance in `app/services/api.ts` with `createApi()` + `fetchBaseQuery`
+- [x] Create `app/services/authApi.ts` with `injectEndpoints()` for auth endpoints
+- [x] Create `app/services/wishlistApi.ts` with `injectEndpoints()` for wishlist endpoints
+- [x] Create `app/services/gameApi.ts` with `injectEndpoints()` for game endpoints
+- [x] Create `features/auth/authSlice.ts` with matchers pattern for auth state
+- [x] Update Redux store to use new API path and include authSlice
 - [ ] Set up React Router with protected route guard
 - [ ] Create basic auth pages (Login, Register) in features/auth/ wired to backend
 
