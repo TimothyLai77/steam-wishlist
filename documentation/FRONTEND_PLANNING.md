@@ -255,12 +255,12 @@ Base URL from env: `VITE_API_URL=http://localhost:4000/api`
 - [x] Create `app/services/gameApi.ts` with `injectEndpoints()` for game endpoints
 - [x] Create `features/auth/authSlice.ts` with matchers pattern for auth state
 - [x] Update Redux store to use new API path and include authSlice
-- [ ] Set up React Router with protected route guard
-- [ ] Create basic auth pages (Login, Register) in features/auth/ wired to backend
+- [x] Set up React Router with protected route guard
+- [x] Create basic auth pages (Login, Register) in features/auth/ wired to backend
 
 ### Phase 2: Core Features
 - [ ] Implement Dashboard layout (Sidebar + Header)
-- [ ] Add required shadcn/ui components (button, input, card, dialog, etc.)
+- [x] Add required shadcn/ui components (button, input, label — installed incrementally)
 - [ ] Wishlists Page (list, create, delete wishlists)
 - [ ] Wishlist Games Page (table view with shadcn/ui Table)
 - [ ] Add Game Page (form to add by AppID/URL)

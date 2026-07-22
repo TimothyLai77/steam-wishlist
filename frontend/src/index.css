@@ -111,6 +111,31 @@
     --social-bg: rgba(47, 48, 58, 0.5);
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+
+    --background: oklch(0.145 0.002 285.823);
+    --foreground: oklch(0.977 0.001 286.375);
+    --card: oklch(0.173 0.002 285.823);
+    --card-foreground: oklch(0.977 0.001 286.375);
+    --popover: oklch(0.173 0.002 285.823);
+    --popover-foreground: oklch(0.977 0.001 286.375);
+    --primary: oklch(0.682 0.234 302.156);
+    --primary-foreground: oklch(0.141 0.005 285.823);
+    --secondary: oklch(0.21 0.003 285.885);
+    --secondary-foreground: oklch(0.977 0.001 286.375);
+    --muted: oklch(0.21 0.003 285.885);
+    --muted-foreground: oklch(0.67 0.008 285.938);
+    --accent-foreground: oklch(0.977 0.001 286.375);
+    --destructive: oklch(0.613 0.227 27.463);
+    --input: oklch(0.26 0.003 285.823);
+    --ring: oklch(0.55 0.012 286.067);
+    --sidebar: oklch(0.173 0.002 285.823);
+    --sidebar-foreground: oklch(0.977 0.001 286.375);
+    --sidebar-primary: oklch(0.682 0.234 302.156);
+    --sidebar-primary-foreground: oklch(0.141 0.005 285.823);
+    --sidebar-accent: oklch(0.21 0.003 285.885);
+    --sidebar-accent-foreground: oklch(0.977 0.001 286.375);
+    --sidebar-border: oklch(0.26 0.003 285.823);
+    --sidebar-ring: oklch(0.55 0.012 286.067);
   }
 
   #social .button-icon {
