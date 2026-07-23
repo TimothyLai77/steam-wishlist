@@ -4,6 +4,8 @@ import cors from "cors";
 import { prisma } from "./config/prisma.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import authRoutes from "./routes/auth.routes.js";
+import wishlistRoutes from "./routes/wishlist.routes.js";
+import gameRoutes from "./routes/game.routes.js";
 
 dotenv.config();
 
@@ -25,6 +27,8 @@ app.use(express.json());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/wishlists", wishlistRoutes);
+app.use("/api", gameRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

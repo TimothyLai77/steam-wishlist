@@ -224,15 +224,19 @@ services:
 │   │   │   └── prisma.ts            # Prisma client instance
 │   │   ├── routes/
 │   │   │   ├── auth.routes.ts
-│   │   │   ├── games.routes.ts
+│   │   │   ├── wishlist.routes.ts
+│   │   │   ├── game.routes.ts
 │   │   │   └── admin.routes.ts
 │   │   ├── controllers/
 │   │   │   ├── auth.controller.ts
-│   │   │   ├── games.controller.ts
+│   │   │   ├── wishlist.controller.ts
+│   │   │   ├── game.controller.ts
 │   │   │   └── admin.controller.ts
 │   │   ├── services/
-│   │   │   ├── steam.service.ts     # Steam API calls
-│   │   │   └── user.service.ts
+│   │   │   ├── steam.service.ts     # Steam Store API calls
+│   │   │   ├── user.service.ts
+│   │   │   ├── wishlist.service.ts
+│   │   │   └── game.service.ts
 │   │   ├── middleware/
 │   │   │   ├── auth.middleware.ts   # JWT validation
 │   │   │   └── error.middleware.ts
@@ -322,17 +326,17 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Create basic routing and protected route guards
 
 ### Phase 2: Core Wishlist Features
-- [ ] Implement Steam API integration (fetch game details by AppID)
-- [ ] CRUD endpoints for wishlists (create, list, update, delete)
-- [ ] CRUD endpoints for wishlist games (add by AppID/URL)
+- [x] Implement Steam API integration (fetch game details by AppID)
+- [x] CRUD endpoints for wishlists (create, list, update, delete)
+- [x] CRUD endpoints for wishlist games (add by AppID/URL)
 - [ ] Frontend wishlists management page (list, create, delete wishlists)
 - [ ] Frontend wishlist games page with table view
 - [ ] Add game flow (paste AppID or URL → select wishlist → add)
-- [ ] Default wishlist creation on user registration
+- [x] Default wishlist creation on user registration
 - [ ] Move game between wishlists functionality
 
 ### Phase 3: Polish & UX
-- [ ] Dashboard with summary stats
+- [x] Dashboard with summary stats
 - [ ] Responsive design improvements
 - [ ] User notes on games
 - [ ] Error handling and loading states
@@ -374,9 +378,9 @@ VITE_API_URL=http://localhost:4000/api
 
 ## 13. Implementation Notes
 
-### Current Progress (Phase 1 - Backend Foundation)
+### Current Progress (Phase 1 Complete, Phase 2 Backend Complete)
 
-#### Completed
+#### Phase 1: Backend Foundation — Completed
 - [x] Backend initialized with Express + TypeScript + ES modules (`"type": "module"`)
 - [x] TypeScript configured with `module: "NodeNext"`, `verbatimModuleSyntax: true`
 - [x] Prisma schema defined (`User`, `Wishlist`, `WishlistGame` models)
@@ -394,11 +398,72 @@ VITE_API_URL=http://localhost:4000/api
 - [x] User service (`services/user.service.ts`) — business logic for register/login/profile
   - Creates default "My Wishlist" on user registration
 
+#### Phase 2: Backend Core Features — Completed
+
+**Wishlist Module:**
+- [x] Wishlist service (`services/wishlist.service.ts`) — Prisma operations for wishlist CRUD
+  - `getWishlists(userId)` — lists all user's wishlists
+  - `getWishlist(wishlistId, userId)` — single wishlist with ownership verification
+  - `createWishlist(userId, name, description)` — creates new wishlist
+  - `updateWishlist(wishlistId, userId, data)` — updates wishlist fields
+  - `deleteWishlist(wishlistId, userId)` — deletes wishlist and all games (cascading)
+- [x] Wishlist controller (`controllers/wishlist.controller.ts`) — Express handlers
+- [x] Wishlist routes (`routes/wishlist.routes.ts`) — mounted at `/api/wishlists`
+  - `GET /api/wishlists` — list wishlists
+  - `GET /api/wishlists/:wishlistId` — get single wishlist
+  - `POST /api/wishlists` — create wishlist
+  - `PUT /api/wishlists/:wishlistId` — update wishlist
+  - `DELETE /api/wishlists/:wishlistId` — delete wishlist
+
+**Steam API Integration:**
+- [x] Steam service (`services/steam.service.ts`) — fetches game details from Steam Store API
+  - Calls `https://store.steampowered.com/api/appdetails?appids={appid}`
+  - Parses: name, currentPrice, originalPrice, discountPercent, currency, imageUrl
+  - Converts price from cents to dollars (Steam returns cents)
+  - Returns `null` if game not found or API fails
+
+**Game Module:**
+- [x] Game service (`services/game.service.ts`) — Prisma operations for WishlistGame CRUD
+  - `getGamesByWishlistId(wishlistId)` — lists games with wishlist name
+  - `getGameDetail(wishlistId, steamId, userId)` — single game with wishlist context
+  - `addGameToWishlist(wishlistId, steamId, userId)` — fetches Steam data on add, creates entry
+    - Verifies wishlist ownership
+    - Checks for duplicate (composite key: steamId + wishlistId)
+    - Falls back to "Game {steamId}" if Steam fetch fails
+  - `updateGameNotes(wishlistId, steamId, notes, userId)` — update notes field
+  - `removeGameFromWishlist(wishlistId, steamId, userId)` — delete by composite key
+  - `moveGameToWishlist(sourceWishlistId, targetWishlistId, steamId, userId)` — move between wishlists
+- [x] Game controller (`controllers/game.controller.ts`) — Express handlers
+- [x] Game routes (`routes/game.routes.ts`) — mounted at `/api`
+  - `GET /api/wishlists/:wishlistId/games` — list games in wishlist
+  - `POST /api/wishlists/:wishlistId/games` — add game by Steam AppID
+  - `GET /api/games/:gameId` — game detail (gameId format: `steamId+wishlistId`)
+  - `PUT /api/games/:gameId` — update game notes
+  - `DELETE /api/games/:gameId` — remove from wishlist
+  - `PUT /api/games/:gameId/move` — move game to another wishlist
+
+**Composite Key Routing:**
+- GameId encoding format: `steamId+wishlistId` (e.g., `1234567+abc-uuid`)
+- Route handlers parse by splitting on `+` delimiter
+- Required due to Prisma composite primary key `@@id([steamId, wishlistId])` on WishlistGame
+
+#### Phase 2: Frontend — Partially Completed
+- [x] Frontend initialized with Vite + React + Redux Toolkit + shadcn/ui + Tailwind CSS
+- [x] Basic routing and protected route guards
+- [x] Auth pages (Login/Register) with Redux auth slice
+- [x] RTK Query API modules: `authApi.ts`, `wishlistApi.ts`, `gameApi.ts`
+- [x] Dashboard page with summary stats (wishlist count, game count, total value, discount stats)
+- [x] StatCard component for dashboard metrics
+- [ ] Wishlists management page (CRUD UI)
+- [ ] Wishlist games page (table view)
+- [ ] Add game flow (AppID/URL input)
+- [ ] Move game between wishlists UI
+
 #### Architecture Pattern
 Backend follows a consistent layering pattern:
 - **Controllers**: parse HTTP requests, basic input checks, call services, return responses
 - **Services**: business logic, DB operations, token/password handling
-- **Utils**: pure helpers (bcrypt, jwt, future steam API calls)
+- **Utils**: pure helpers (bcrypt, jwt)
 - **Middleware**: cross-cutting concerns (auth, error handling)
 
 #### Prisma 7 Specifics
@@ -411,9 +476,10 @@ Backend follows a consistent layering pattern:
 - Backend uses ES modules (`"type": "module"` in package.json)
 - TypeScript config: `module: "NodeNext"`, `moduleResolution: "NodeNext"`, `verbatimModuleSyntax: true`
 - `dotenv` loaded in both `index.ts` and `prisma.ts` to ensure env vars are available at import time
+- ES module imports require explicit `.js` extensions on relative paths
 
 #### Next Steps
-- Initialize frontend with Vite + React + Redux Toolkit + shadcn/ui + Tailwind CSS
-- Create basic routing and protected route guards
-- Implement wishlist CRUD endpoints (routes + controller + service)
-- Implement Steam API service (`services/steam.service.ts`)
+- Connect frontend wishlistApi.ts to backend wishlist endpoints
+- Implement wishlists management page UI (list, create, edit, delete)
+- Implement wishlist games page UI (table view with sorting/filtering)
+- Implement add game flow (AppID/URL input → Steam fetch → add to wishlist)
