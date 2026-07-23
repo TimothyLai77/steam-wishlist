@@ -6,6 +6,7 @@ import {
   createWishlistHandler,
   updateWishlistHandler,
   deleteWishlistHandler,
+  getAllGames,
 } from '../controllers/wishlist.controller.js';
 
 const router = Router();
@@ -14,6 +15,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', getWishlists);
+router.get('/all-games', getAllGames);
 router.get('/:wishlistId', getWishlist);
 router.post('/', createWishlistHandler);
 router.put('/:wishlistId', updateWishlistHandler);

@@ -34,6 +34,17 @@ export interface GameSummary {
   createdAt: string;
 }
 
+export interface AllGamesGame {
+  steamId: number;
+  name: string | null;
+  currentPrice: number | null;
+  originalPrice: number | null;
+  discountPercent: number | null;
+  addedAt: string;
+  wishlistId: string;
+  wishlistName: string;
+}
+
 export const wishlistApi = api.injectEndpoints({
   endpoints: (builder) => ({
     /**
@@ -100,6 +111,14 @@ export const wishlistApi = api.injectEndpoints({
     }),
 
     /**
+     * Get all games across all wishlists for the current user (for dashboard)
+     */
+    getAllGames: builder.query<AllGamesGame[], void>({
+      query: () => '/wishlists/all-games',
+      providesTags: ['Wishlist', 'Game'],
+    }),
+
+    /**
      * Add a game to a wishlist
      */
     postGame: builder.mutation<GameSummary, { wishlistId: string; steamId: string }>({
@@ -124,5 +143,6 @@ export const {
   usePutWishlistMutation,
   useDeleteWishlistMutation,
   useGetGamesQuery,
+  useGetAllGamesQuery,
   usePostGameMutation,
 } = wishlistApi;

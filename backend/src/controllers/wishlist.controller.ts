@@ -6,6 +6,7 @@ import {
   createWishlist,
   updateWishlist,
   deleteWishlist,
+  getAllGamesForUser,
   type CreateWishlistInput,
   type UpdateWishlistInput,
 } from "../services/wishlist.service.js";
@@ -118,6 +119,23 @@ export const updateWishlistHandler = async (
     }
 
     res.json(wishlist);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Get all games across all wishlists for the authenticated user.
+ */
+export const getAllGames = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { userId } = req.user!;
+    const allGames = await getAllGamesForUser(userId);
+    res.json(allGames);
   } catch (err) {
     next(err);
   }

@@ -110,6 +110,7 @@ services:
 
 ### Wishlists
 - `GET /api/wishlists` — List all wishlists for current user (protected)
+- `GET /api/wishlists/all-games` — Get all games across all user wishlists (protected, for dashboard)
 - `POST /api/wishlists` — Create a new wishlist (protected)
 - `GET /api/wishlists/:wishlistId` — Get single wishlist with games (protected)
 - `PUT /api/wishlists/:wishlistId` — Update wishlist name/description (protected)
@@ -402,15 +403,17 @@ VITE_API_URL=http://localhost:4000/api
 
 **Wishlist Module:**
 - [x] Wishlist service (`services/wishlist.service.ts`) — Prisma operations for wishlist CRUD
-  - `getWishlists(userId)` — lists all user's wishlists
-  - `getWishlist(wishlistId, userId)` — single wishlist with ownership verification
-  - `createWishlist(userId, name, description)` — creates new wishlist
-  - `updateWishlist(wishlistId, userId, data)` — updates wishlist fields
+  - `getWishlistsByUser(userId)` — lists all user's wishlists with game counts
+  - `getWishlistById(wishlistId, userId)` — single wishlist with games
+  - `createWishlist(userId, input)` — creates new wishlist
+  - `updateWishlist(wishlistId, userId, input)` — updates wishlist fields
   - `deleteWishlist(wishlistId, userId)` — deletes wishlist and all games (cascading)
+  - `getAllGamesForUser(userId)` — fetches all games across all user wishlists in one query (for dashboard)
 - [x] Wishlist controller (`controllers/wishlist.controller.ts`) — Express handlers
 - [x] Wishlist routes (`routes/wishlist.routes.ts`) — mounted at `/api/wishlists`
   - `GET /api/wishlists` — list wishlists
-  - `GET /api/wishlists/:wishlistId` — get single wishlist
+  - `GET /api/wishlists/all-games` — all games across all wishlists (dashboard endpoint)
+  - `GET /api/wishlists/:wishlistId` — get single wishlist with games
   - `POST /api/wishlists` — create wishlist
   - `PUT /api/wishlists/:wishlistId` — update wishlist
   - `DELETE /api/wishlists/:wishlistId` — delete wishlist
@@ -452,8 +455,9 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Basic routing and protected route guards
 - [x] Auth pages (Login/Register) with Redux auth slice
 - [x] RTK Query API modules: `authApi.ts`, `wishlistApi.ts`, `gameApi.ts`
-- [x] Dashboard page with summary stats (wishlist count, game count, total value, discount stats)
+- [x] Dashboard page with summary stats (total games, total value, on sale count, estimated savings)
 - [x] StatCard component for dashboard metrics
+- [x] Fixed React Hooks violation: replaced dynamic `.map(() => useGetGamesQuery())` with single static `useGetAllGamesQuery()` hook using combined backend endpoint
 - [ ] Wishlists management page (CRUD UI)
 - [ ] Wishlist games page (table view)
 - [ ] Add game flow (AppID/URL input)
@@ -483,3 +487,9 @@ Backend follows a consistent layering pattern:
 - Implement wishlists management page UI (list, create, edit, delete)
 - Implement wishlist games page UI (table view with sorting/filtering)
 - Implement add game flow (AppID/URL input → Steam fetch → add to wishlist)
+
+#### React Hooks Fix (DashboardPage)
+- DashboardPage originally called `useGetGamesQuery(id)` inside `.map()` over dynamic wishlist IDs, violating the Rules of Hooks (hook count changed between renders as wishlists loaded).
+- Fixed by adding `GET /api/wishlists/all-games` backend endpoint backed by `getAllGamesForUser()` service, which fetches all games across all user wishlists in a single Prisma query.
+- Frontend now uses a single static `useGetAllGamesQuery()` hook call at the top level, compliant with React's Rules of Hooks.
+- Bonus: Dashboard `totalSavings` now accurately calculates from `originalPrice - currentPrice` since the combined endpoint returns both fields.

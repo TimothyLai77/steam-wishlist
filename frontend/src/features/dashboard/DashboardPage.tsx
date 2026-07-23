@@ -1,6 +1,5 @@
 import { useSelector } from 'react-redux';
-import type { ReactNode } from 'react';
-import { useGetWishlistsQuery, useGetGamesQuery } from '../../app/services/wishlistApi';
+import { useGetWishlistsQuery, useGetAllGamesQuery } from '../../app/services/wishlistApi';
 import type { RootState } from '../../store/store';
 import {
   Card,
@@ -19,32 +18,28 @@ interface DashboardStats {
   totalSavings: number;
   recentGames: Array<{
     name: string;
-    steamId: number | string;
+    steamId: number;
     addedAt: string;
     price: number | null;
     wishlistName: string;
   }>;
 }
 
-const calculateDashboardStats = (
-  wishlists: Array<{ id: string; name: string }>,
-  gamesByWishlistId: Record<string, Array<{ steamId: string; name: string; currentPrice: number | null; discountPercent: number | null; addedAt: string }>>
-): DashboardStats => {
-  // Flatten all games
-  const allGames: Array<{ wishlistName: string; steamId: string; name: string; currentPrice: number | null; discountPercent: number | null; addedAt: string }> = [];
-
-  for (const wishlist of wishlists) {
-    const games = gamesByWishlistId[wishlist.id] || [];
-    for (const game of games) {
-      allGames.push({ ...game, wishlistName: wishlist.name });
-    }
-  }
-
+const calculateDashboardStats = (allGames: Array<{
+  steamId: number;
+  name: string | null;
+  currentPrice: number | null;
+  originalPrice: number | null;
+  discountPercent: number | null;
+  addedAt: string;
+  wishlistId: string;
+  wishlistName: string;
+}>): DashboardStats => {
   // Sort by addedAt descending, take the 5 most recent
-  allGames.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
-  const recentGames = allGames.slice(0, 5).map((game) => ({
+  const sorted = [...allGames].sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
+  const recentGames = sorted.slice(0, 5).map((game) => ({
     name: game.name || `Game #${game.steamId}`,
-    steamId: parseInt(game.steamId, 10),
+    steamId: game.steamId,
     addedAt: game.addedAt,
     price: game.currentPrice,
     wishlistName: game.wishlistName,
@@ -52,15 +47,18 @@ const calculateDashboardStats = (
 
   const totalGames = allGames.length;
   const totalValue = allGames.reduce((sum, game) => {
-    const price = game.currentPrice ?? 0;
-    return sum + Number(price);
+    return sum + (game.currentPrice ?? 0);
   }, 0);
 
   const onSaleCount = allGames.filter((game) => (game.discountPercent ?? 0) > 0).length;
 
-  // Savings calculation: we'd need originalPrice for accurate savings
-  // For now we'll estimate from discountPercent and currentPrice if available
-  const totalSavings = 0; // Requires backend to expose originalPrice
+  // Calculate savings from originalPrice vs currentPrice
+  const totalSavings = allGames.reduce((sum, game) => {
+    if (game.originalPrice != null && game.currentPrice != null && game.originalPrice > game.currentPrice) {
+      return sum + (game.originalPrice - game.currentPrice);
+    }
+    return sum;
+  }, 0);
 
   return {
     totalGames,
@@ -73,33 +71,16 @@ const calculateDashboardStats = (
 
 const DashboardPage = () => {
   const { user } = useSelector((state: RootState) => state.auth);
-  const { data: wishlists, isLoading: wishlistsLoading, error: wishlistsError } = useGetWishlistsQuery();
+  const { isLoading: wishlistsLoading, error: wishlistsError } = useGetWishlistsQuery();
+  const { data: allGames, isLoading: allGamesLoading, error: allGamesError } = useGetAllGamesQuery();
 
-  // Fetch games for each wishlist (only after wishlists are loaded)
-  const wishlistIds = wishlists?.map((w) => w.id) ?? [];
-  const gamesQueries = wishlistIds.map((id) => useGetGamesQuery(id));
+  const loading = wishlistsLoading || allGamesLoading;
+  const hasError = wishlistsError || allGamesError;
 
-  const allGamesLoading = wishlistsLoading || gamesQueries.some((q) => q.isLoading);
-  const anyGamesError = gamesQueries.some((q) => !!q.error);
+  // Compute stats from all games (single static hook, no dynamic hook calls)
+  const stats = calculateDashboardStats(allGames ?? []);
 
-  // Aggregate games by wishlist ID
-  const gamesByWishlistId: Record<string, Array<{ steamId: string; name: string; currentPrice: number | null; discountPercent: number | null; addedAt: string }>> = {};
-  gamesQueries.forEach((query, index) => {
-    if (query.data && wishlistIds[index]) {
-      gamesByWishlistId[wishlistIds[index]] = query.data.map((game) => ({
-        steamId: game.steamId,
-        name: game.name ?? `Game #${game.steamId}`,
-        currentPrice: game.currentPrice ?? null,
-        discountPercent: game.discountPercent ?? null,
-        addedAt: game.createdAt,
-      }));
-    }
-  });
-
-  // Compute stats
-  const stats = calculateDashboardStats(wishlists ?? [], gamesByWishlistId);
-
-  if (allGamesLoading) {
+  if (loading) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
@@ -110,7 +91,7 @@ const DashboardPage = () => {
     );
   }
 
-  if (wishlistsError || anyGamesError) {
+  if (hasError) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-center">

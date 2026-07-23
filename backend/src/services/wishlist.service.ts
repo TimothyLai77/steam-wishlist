@@ -184,6 +184,49 @@ export const updateWishlist = async (
 };
 
 /**
+ * Get all games across all wishlists for a user (for dashboard stats).
+ */
+export const getAllGamesForUser = async (userId: string) => {
+  const wishlists = await prisma.wishlist.findMany({
+    where: { userId },
+    include: {
+      games: {
+        orderBy: { addedAt: "desc" },
+      },
+    },
+  });
+
+  // Flatten games with their wishlist info
+  const allGames: Array<{
+    steamId: number;
+    name: string | null;
+    currentPrice: number | null;
+    originalPrice: number | null;
+    discountPercent: number | null;
+    addedAt: Date;
+    wishlistId: string;
+    wishlistName: string;
+  }> = [];
+
+  for (const wishlist of wishlists) {
+    for (const game of wishlist.games) {
+      allGames.push({
+        steamId: game.steamId,
+        name: game.name,
+        currentPrice: game.currentPrice?.toNumber() ?? null,
+        originalPrice: game.originalPrice?.toNumber() ?? null,
+        discountPercent: game.discountPercent,
+        addedAt: game.addedAt,
+        wishlistId: wishlist.id,
+        wishlistName: wishlist.name,
+      });
+    }
+  }
+
+  return allGames;
+};
+
+/**
  * Delete a wishlist.
  */
 export const deleteWishlist = async (
