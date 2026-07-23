@@ -241,42 +241,54 @@ services:
 │
 
 ├── frontend/
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── vite.config.ts
-│   ├── index.html
-│   ├── public/
-│   └── src/
-│       ├── main.tsx
-│       ├── App.tsx
-│       ├── router.tsx               # React Router setup
-│       ├── store/                   # Redux Toolkit
-│       │   ├── store.ts             # Redux store config + RTK Query plugins
-│       │   ├── api/
-│       │   │   ├── authApi.ts       # RTK Query endpoints (register, login, profile)
-│       │   │   ├── wishlistApi.ts   # RTK Query endpoints
-│       │   │   └── gameApi.ts       # RTK Query endpoints
-│       │   └── uiSlice.ts           # UI state (modals, toasts, theme)
-│       ├── pages/
-│       │   ├── LoginPage.tsx
-│       │   ├── RegisterPage.tsx
-│       │   ├── DashboardPage.tsx
-│       │   ├── WishlistsPage.tsx
-│       │   ├── WishlistGamesPage.tsx
-│       │   ├── AddGamePage.tsx
-│       │   └── GameDetailPage.tsx
-│       ├── components/
-│       │   ├── ui/                  # shadcn/ui components (auto-generated)
-│       │   ├── Layout/
-│       │   ├── GameCard.tsx
-│       │   └── GameTable.tsx
-│       ├── hooks/
-│       │   └── useAuth.ts
-│       └── types/
-│           ├── game.ts
-│           ├── wishlist.ts
-│           └── user.ts
+├── Dockerfile
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── components.json        # shadcn/ui config
+├── index.html
+├── public/
+└── src/
+    ├── main.tsx
+    ├── App.tsx
+    ├── router.tsx         # React Router setup + protected route guards
+    ├── app/
+    │   └── services/
+    │       ├── api.ts             # Central createApi() with baseQuery + tagTypes
+    │       ├── authApi.ts         # injectEndpoints for auth (register, login, profile)
+    │       ├── wishlistApi.ts     # injectEndpoints for wishlists CRUD
+    │       └── gameApi.ts         # injectEndpoints for games CRUD
+    ├── store/
+    │   └── store.ts       # Redux store config (api reducer + authSlice + middleware)
+    ├── features/
+    │   ├── auth/
+    │   │   ├── authSlice.ts       # Auth state with matchers on authApi endpoints
+    │   │   ├── LoginPage.tsx
+    │   │   └── RegisterPage.tsx
+    │   ├── wishlists/
+    │   │   ├── WishlistsPage.tsx
+    │   │   ├── WishlistGamesPage.tsx
+    │   │   └── AddGamePage.tsx
+    │   ├── games/
+    │   │   └── GameDetailPage.tsx
+    │   └── dashboard/
+    │       └── DashboardPage.tsx
+    ├── components/
+    │   ├── ui/            # shadcn/ui components (auto-generated, added incrementally)
+    │   ├── Layout/
+    │   │   ├── AppLayout.tsx    # Main layout with sidebar + header
+    │   │   └── ProtectedRoute.tsx
+    │   ├── GameCard.tsx
+    │   ├── GameTable.tsx
+    │   └── ...            # Shared components
+    ├── hooks/
+    │   ├── useAuth.ts
+    │   └── ...
+    ├── types/
+    │   ├── game.ts
+    │   ├── wishlist.ts
+    │   └── user.ts
+    └── index.css          # Tailwind base + shadcn/ui theme variables
 ```
 
 ---
@@ -306,8 +318,8 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Initialize backend with Express + TypeScript + Prisma
 - [x] Define and migrate database schema
 - [x] Implement user registration and login with JWT
-- [ ] Initialize frontend with Vite + React + Redux Toolkit + shadcn/ui + Tailwind CSS
-- [ ] Create basic routing and protected route guards
+- [x] Initialize frontend with Vite + React + Redux Toolkit + shadcn/ui + Tailwind CSS
+- [x] Create basic routing and protected route guards
 
 ### Phase 2: Core Wishlist Features
 - [ ] Implement Steam API integration (fetch game details by AppID)

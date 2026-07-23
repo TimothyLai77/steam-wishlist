@@ -11,6 +11,7 @@ export const register = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
+    console.log("[REGISTER] Request received", { bodyKeys: Object.keys(req.body) });
     const { username, password } = req.body;
 
     if (!username || typeof username !== "string" || !username.trim()) {
@@ -21,10 +22,13 @@ export const register = async (
       throw new AppError(400, "Password is required.");
     }
 
+    console.log("[REGISTER] Calling createUser");
     const result = await createUser({ username, password });
+    console.log("[REGISTER] createUser succeeded", { userId: result.user.id });
 
     res.status(201).json(result);
   } catch (err) {
+    console.error("[REGISTER] Error", err);
     next(err);
   }
 };
