@@ -1,6 +1,3 @@
-Here's the updated FRONTEND_PLANNING.md with setup tasks marked complete, version corrections (React 19, React Router 7), and the incremental component approach noted:
-
-```markdown
 # Frontend Planning - Steam Wishlist App
 
 A private, self-hosted web application for tracking Steam game wishlists, prices, and discounts. Users can create multiple named wishlists, add games by Steam AppID, and view real-time pricing data from the Steam Store API.
@@ -15,7 +12,7 @@ A private, self-hosted web application for tracking Steam game wishlists, prices
 - **UI Components:** shadcn/ui (base-lyra style, phosphor icons) — added incrementally as needed
 - **Styling:** Tailwind CSS v4
 
-**Note:** shadcn/ui components are installed into your codebase (`src/components/ui/`) via CLI, not as a runtime dependency. Components are added incrementally as each feature requires them. 
+**Note:** shadcn/ui components are installed into your codebase (`src/components/ui/`) via CLI, not as a runtime dependency. Components are added incrementally as each feature requires them.
 
 ---
 
@@ -54,9 +51,8 @@ A private, self-hosted web application for tracking Steam game wishlists, prices
 ## State Management (Redux Toolkit)
 
 - **app/services/api.ts** — Central `createApi()` with shared `fetchBaseQuery` configuration (base URL, token injection, tag types). No endpoints defined here.
-- **app/services/\*.ts** — Domain-specific API modules (authApi, wishlistApi, gameApi) using `injectEndpoints()` on the central API instance. Keeps endpoints organized by domain while sharing one baseQuery and reducer path.
+- **app/services/*.ts** — Domain-specific API modules (authApi, wishlistApi, gameApi) using `injectEndpoints()` on the central API instance. Keeps endpoints organized by domain while sharing one baseQuery and reducer path.
 - **features/auth/authSlice.ts** — Dedicated slice for authentication state (user, status, error). Uses `extraReducers` with `addMatcher()` on RTK Query endpoints (e.g., `authApi.endpoints.postLogin.matchPending`) to keep auth-related UI state in sync with API operations.
-- **features/auth/authApi.ts** — (Optional colocated helper, or use centralized authApi from services)
 - **uiSlice** — Global UI state (modals, notifications, theme)
 
 **RTK Query + authSlice Pattern:** RTK Query manages cached API data (loading, error, query results) via generated hooks. The `authSlice` stores derived/auth-related state needed across the app:
@@ -68,7 +64,7 @@ This avoids having to rely on `useGetProfileQuery()` state everywhere while stil
 
 ---
 
-## Key UI Components (added as needed)
+## Key UI Components (shadcn/ui — added as needed)
 
 - **Layout:** Sidebar + Header layout
 - **Forms:** Controlled inputs with `useState` + shadcn/ui `Input`, `Button`, `Select`, `Textarea`, `Label`
@@ -81,8 +77,17 @@ This avoids having to rely on `useGetProfileQuery()` state everywhere while stil
 
 ---
 
-## Authentication Flow (Client-Side)
+## Authentication Flow
 
+### Backend
+1. User registers with username/password
+2. Password is hashed using bcryptjs (cost factor 12)
+3. On login, server validates credentials and issues JWT
+4. JWT stored in localStorage (for SPA simplicity)
+5. Express middleware validates JWT on protected routes
+6. Token expiry: 7 days, with optional refresh
+
+### Frontend (Client-Side)
 1. User registers/logs in via form → POST to backend using RTK Query mutation
 2. On success, store JWT in localStorage
 3. `fetchBaseQuery` `prepareHeaders` callback reads token from localStorage and attaches `Authorization: Bearer <token>` to all requests
@@ -221,24 +226,25 @@ Base URL from env: `VITE_API_URL=http://localhost:4000/api`
 ### Endpoints needed:
 
 **Auth:**
-- `postRegister` — `/auth/register`
-- `postLogin` — `/auth/login`
-- `getProfile` — `/auth/profile`
+- `postRegister` — `/api/auth/register`
+- `postLogin` — `/api/auth/login`
+- `getProfile` — `/api/auth/profile`
 
 **Wishlists:**
-- `getWishlists` — `/wishlists`
-- `postWishlist` — `/wishlists`
-- `getWishlist` — `/wishlists/:wishlistId`
-- `putWishlist` — `/wishlists/:wishlistId`
-- `deleteWishlist` — `/wishlists/:wishlistId`
+- `getWishlists` — `/api/wishlists`
+- `getAllGames` — `/api/wishlists/all-games` (dashboard: all games across all user wishlists)
+- `postWishlist` — `/api/wishlists`
+- `getWishlist` — `/api/wishlists/:wishlistId`
+- `putWishlist` — `/api/wishlists/:wishlistId`
+- `deleteWishlist` — `/api/wishlists/:wishlistId`
 
 **Games:**
-- `getGames` — `/wishlists/:wishlistId/games`
-- `postGame` — `/wishlists/:wishlistId/games`
-- `getGame` — `/games/:gameId`
-- `putGame` — `/games/:gameId`
-- `deleteGame` — `/games/:gameId`
-- `moveGame` — `/games/:gameId/move`
+- `getGames` — `/api/wishlists/:wishlistId/games`
+- `postGame` — `/api/wishlists/:wishlistId/games`
+- `getGame` — `/api/games/:gameId`
+- `putGame` — `/api/games/:gameId`
+- `deleteGame` — `/api/games/:gameId`
+- `moveGame` — `/api/games/:gameId/move`
 
 ---
 
@@ -261,6 +267,7 @@ Base URL from env: `VITE_API_URL=http://localhost:4000/api`
 ### Phase 2: Core Features
 - [ ] Implement Dashboard layout (Sidebar + Header)
 - [x] Add required shadcn/ui components (button, input, label — installed incrementally)
+- [x] Dashboard page with summary stats (total games, total value, on sale count, estimated savings)
 - [ ] Wishlists Page (list, create, delete wishlists)
 - [ ] Wishlist Games Page (table view with shadcn/ui Table)
 - [ ] Add Game Page (form to add by AppID/URL)
@@ -268,21 +275,36 @@ Base URL from env: `VITE_API_URL=http://localhost:4000/api`
 - [ ] Move game between wishlists functionality
 
 ### Phase 3: Polish
-- [ ] Dashboard with summary stats
-- [ ] Game Detail Page with screenshots + external links
 - [ ] Responsive design improvements
 - [ ] User notes on games
 - [ ] Error handling and loading states
 - [ ] Theme support (dark/light mode)
-```
+- [ ] Add SteamDB price history links on game detail page
 
-Key changes:
-- React 18+ → React 19, React Router v6 → v7
-- Added components incrementally approach
-- Removed tailwind.config.ts/postcss.config.js from structure (Tailwind v4 doesn't need them)
-- Phase 1 setup tasks marked complete
-- Restructured API layer to use centralized `createApi()` + `injectEndpoints()` pattern
-- Added dedicated authSlice with matchers pattern
-- Features organized by domain (auth, wishlists, games, dashboard)
+---
 
-Toggle to Act mode when you want me to write this file and/or start implementing.
+## Implementation Notes
+
+### React Hooks Fix (DashboardPage)
+- DashboardPage originally called `useGetGamesQuery()` inside `.map()` over dynamic wishlist IDs, violating the Rules of Hooks (hook count changed between renders as wishlists loaded).
+- Fixed by adding `GET /api/wishlists/all-games` backend endpoint backed by `getAllGamesForUser()` service, which fetches all games across all user wishlists in a single Prisma query.
+- Frontend now uses a single static `useGetAllGamesQuery()` hook call at the top level, compliant with React's Rules of Hooks.
+- Bonus: Dashboard `totalSavings` now accurately calculates from `originalPrice - currentPrice` since the combined endpoint returns both fields.
+
+### Current Progress
+- [x] Frontend initialized with Vite + React + Redux Toolkit + shadcn/ui + Tailwind CSS
+- [x] Basic routing and protected route guards
+- [x] Auth pages (Login/Register) with Redux auth slice
+- [x] RTK Query API modules: `authApi.ts`, `wishlistApi.ts`, `gameApi.ts`
+- [x] Dashboard page with summary stats (total games, total value, on sale count, estimated savings)
+- [x] StatCard component for dashboard metrics
+- [ ] Wishlists management page (CRUD UI)
+- [ ] Wishlist games page (table view)
+- [ ] Add game flow (AppID/URL input)
+- [ ] Move game between wishlists UI
+
+### Next Steps
+- Connect frontend wishlistApi.ts to backend wishlist endpoints
+- Implement wishlists management page UI (list, create, edit, delete)
+- Implement wishlist games page UI (table view with sorting/filtering)
+- Implement add game flow (AppID/URL input → Steam fetch → add to wishlist)

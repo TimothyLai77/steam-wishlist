@@ -162,20 +162,29 @@ services:
    - SteamDB price history
 
 ### State Management (Redux Toolkit)
-- **api/** — RTK Query API modules organized by domain (auth, wishlists, games), all using a shared `fetchBaseQuery` configuration for HTTP requests, headers, and token injection
+- **app/services/api.ts** — Central `createApi()` with shared `fetchBaseQuery` configuration (base URL, token injection, tag types). No endpoints defined here.
+- **app/services/\*.ts** — Domain-specific API modules (authApi, wishlistApi, gameApi) using `injectEndpoints()` on the central API instance. Keeps endpoints organized by domain while sharing one baseQuery and reducer path.
+- **features/auth/authSlice.ts** — Dedicated slice for authentication state (user, status, error). Uses `extraReducers` with `addMatcher()` on RTK Query endpoints (e.g., `authApi.endpoints.postLogin.matchPending`) to keep auth-related UI state in sync with API operations.
 - **uiSlice** — Global UI state (modals, notifications, theme)
 
-**Note:** RTK Query manages its own state (loading, error, cached data) via generated hooks like `usePostLoginMutation()` and `useGetProfileQuery()`. Separate slices for auth or wishlist data are not needed — RTK Query handles caching, invalidation, and request state automatically. Only use `createSlice` for UI state (modals, theme, toasts) that doesn't come from API responses.
+**RTK Query + authSlice Pattern:** RTK Query manages cached API data (loading, error, query results) via generated hooks. The `authSlice` stores derived/auth-related state needed across the app:
+- Current user object (persisted across navigation)
+- Authentication status (idle/loading/succeeded/failed)
+- Error messages for login failures
+
+This avoids having to rely on `useGetProfileQuery()` state everywhere while still leveraging RTK Query's caching and invalidation for the actual API calls.
 
 ### Key UI Components (shadcn/ui)
-- Layout: Sidebar + Header layout with shadcn/ui primitives + Tailwind CSS utility classes
+- Layout: Collapsible sidebar layout (`AppLayout`) + responsive mobile drawer (`Sheet`) with Tailwind CSS utility classes
 - Forms: Controlled inputs with `useState` + shadcn/ui `Input`, `Button`, `Select`, `Textarea`, `Label`
 - Tables: Basic shadcn/ui `Table` (minimal implementation for now)
 - Cards: shadcn/ui `Card`
 - Modals: shadcn/ui `Dialog`
 - Notifications: shadcn/ui `Toast`
-- Navigation: shadcn/ui `Sheet` (mobile menu), `DropdownMenu`
+- Navigation: shadcn/ui `Sheet` (mobile menu), `DropdownMenu` (collapsed sidebar wishlists), `Collapsible` (wishlist section expansion)
 - Badges/Tags: shadcn/ui `Badge` for discount indicators
+
+**Currently installed components** (`src/components/ui/`): `badge`, `button`, `card`, `collapsible`, `dialog`, `dropdown-menu`, `input`, `label`, `sheet`
 
 **Note:** shadcn/ui components are installed into your codebase (`src/components/ui/`) via CLI, not as a runtime dependency. Components are added incrementally as each feature requires them.
 
@@ -246,54 +255,54 @@ services:
 │
 
 ├── frontend/
-├── Dockerfile
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── components.json        # shadcn/ui config
-├── index.html
-├── public/
-└── src/
-    ├── main.tsx
-    ├── App.tsx
-    ├── router.tsx         # React Router setup + protected route guards
-    ├── app/
-    │   └── services/
-    │       ├── api.ts             # Central createApi() with baseQuery + tagTypes
-    │       ├── authApi.ts         # injectEndpoints for auth (register, login, profile)
-    │       ├── wishlistApi.ts     # injectEndpoints for wishlists CRUD
-    │       └── gameApi.ts         # injectEndpoints for games CRUD
-    ├── store/
-    │   └── store.ts       # Redux store config (api reducer + authSlice + middleware)
-    ├── features/
-    │   ├── auth/
-    │   │   ├── authSlice.ts       # Auth state with matchers on authApi endpoints
-    │   │   ├── LoginPage.tsx
-    │   │   └── RegisterPage.tsx
-    │   ├── wishlists/
-    │   │   ├── WishlistsPage.tsx
-    │   │   ├── WishlistGamesPage.tsx
-    │   │   └── AddGamePage.tsx
-    │   ├── games/
-    │   │   └── GameDetailPage.tsx
-    │   └── dashboard/
-    │       └── DashboardPage.tsx
-    ├── components/
-    │   ├── ui/            # shadcn/ui components (auto-generated, added incrementally)
-    │   ├── Layout/
-    │   │   ├── AppLayout.tsx    # Main layout with sidebar + header
-    │   │   └── ProtectedRoute.tsx
-    │   ├── GameCard.tsx
-    │   ├── GameTable.tsx
-    │   └── ...            # Shared components
-    ├── hooks/
-    │   ├── useAuth.ts
-    │   └── ...
-    ├── types/
-    │   ├── game.ts
-    │   ├── wishlist.ts
-    │   └── user.ts
-    └── index.css          # Tailwind base + shadcn/ui theme variables
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   ├── components.json        # shadcn/ui config
+│   ├── index.html
+│   ├── public/
+│   └── src/
+│       ├── main.tsx
+│       ├── App.tsx
+│       ├── router.tsx         # React Router setup + protected route guards
+│       ├── app/
+│       │   └── services/
+│       │       ├── api.ts             # Central createApi() with baseQuery + tagTypes
+│       │       ├── authApi.ts         # injectEndpoints for auth (register, login, profile)
+│       │       ├── wishlistApi.ts     # injectEndpoints for wishlists CRUD
+│       │       └── gameApi.ts         # injectEndpoints for games CRUD
+│       ├── store/
+│       │   └── store.ts       # Redux store config (api reducer + authSlice + middleware)
+│       ├── features/
+│       │   ├── auth/
+│       │   │   ├── authSlice.ts       # Auth state with matchers on authApi endpoints
+│       │   │   ├── LoginPage.tsx
+│       │   │   └── RegisterPage.tsx
+│       │   ├── wishlists/
+│       │   │   ├── WishlistsPage.tsx
+│       │   │   ├── WishlistGamesPage.tsx
+│       │   │   └── AddGamePage.tsx
+│       │   ├── games/
+│       │   │   └── GameDetailPage.tsx
+│       │   └── dashboard/
+│       │       └── DashboardPage.tsx
+│       ├── components/
+│       │   ├── ui/            # shadcn/ui components (auto-generated, added incrementally)
+│       │   ├── Layout/
+│       │   │   ├── AppLayout.tsx    # Main layout with sidebar + header
+│       │   │   └── ProtectedRoute.tsx
+│       │   ├── GameCard.tsx
+│       │   ├── GameTable.tsx
+│       │   └── ...            # Shared components
+│       ├── hooks/
+│       │   ├── useAuth.ts
+│       │   └── ...
+│       ├── types/
+│       │   ├── game.ts
+│       │   ├── wishlist.ts
+│       │   └── user.ts
+│       └── index.css          # Tailwind base + shadcn/ui theme variables
 ```
 
 ---
@@ -330,9 +339,13 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Implement Steam API integration (fetch game details by AppID)
 - [x] CRUD endpoints for wishlists (create, list, update, delete)
 - [x] CRUD endpoints for wishlist games (add by AppID/URL)
-- [ ] Frontend wishlists management page (list, create, delete wishlists)
-- [ ] Frontend wishlist games page with table view
-- [ ] Add game flow (paste AppID or URL → select wishlist → add)
+- [x] AppLayout sidebar with collapsible navigation and mobile Sheet drawer
+- [x] WishlistSection component for sidebar wishlist navigation
+- [x] CreateWishlistDialog integrated into sidebar for quick wishlist creation
+- [x] Sidebar displays wishlists with game counts via RTK Query
+- [ ] Frontend wishlists management page (list, create, delete wishlists) — placeholder stub
+- [ ] Frontend wishlist games page with table view — placeholder stub
+- [ ] Add game flow (paste AppID or URL → select wishlist → add) — placeholder stub
 - [x] Default wishlist creation on user registration
 - [ ] Move game between wishlists functionality
 
@@ -458,9 +471,15 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Dashboard page with summary stats (total games, total value, on sale count, estimated savings)
 - [x] StatCard component for dashboard metrics
 - [x] Fixed React Hooks violation: replaced dynamic `.map(() => useGetGamesQuery())` with single static `useGetAllGamesQuery()` hook using combined backend endpoint
-- [ ] Wishlists management page (CRUD UI)
-- [ ] Wishlist games page (table view)
-- [ ] Add game flow (AppID/URL input)
+- [x] AppLayout sidebar with collapsible navigation (desktop) and Sheet drawer (mobile)
+- [x] WishlistSection component with collapsible wishlist list and dropdown menu for collapsed sidebar
+- [x] CreateWishlistDialog component integrated into sidebar
+- [x] Sidebar integrates `useGetWishlistsQuery` to display wishlists with game counts
+- [x] Sidebar integrates `usePostWishlistMutation` for creating wishlists directly from navigation
+- [x] Router fully configured with all planned routes, public route guards, root redirect, and 404 catch-all
+- [ ] Wishlists management page (CRUD UI) — currently placeholder stub
+- [ ] Wishlist games page (table view) — currently placeholder stub
+- [ ] Add game flow (AppID/URL input) — currently placeholder stub
 - [ ] Move game between wishlists UI
 
 #### Architecture Pattern
@@ -483,13 +502,39 @@ Backend follows a consistent layering pattern:
 - ES module imports require explicit `.js` extensions on relative paths
 
 #### Next Steps
-- Connect frontend wishlistApi.ts to backend wishlist endpoints
-- Implement wishlists management page UI (list, create, edit, delete)
-- Implement wishlist games page UI (table view with sorting/filtering)
-- Implement add game flow (AppID/URL input → Steam fetch → add to wishlist)
+- Implement wishlists management page UI (list, create, edit, delete) — currently placeholder stub
+- Implement wishlist games page UI (table view with sorting/filtering) — currently placeholder stub
+- Implement add game flow (AppID/URL input → Steam fetch → add to wishlist) — currently placeholder stub
 
 #### React Hooks Fix (DashboardPage)
 - DashboardPage originally called `useGetGamesQuery(id)` inside `.map()` over dynamic wishlist IDs, violating the Rules of Hooks (hook count changed between renders as wishlists loaded).
 - Fixed by adding `GET /api/wishlists/all-games` backend endpoint backed by `getAllGamesForUser()` service, which fetches all games across all user wishlists in a single Prisma query.
 - Frontend now uses a single static `useGetAllGamesQuery()` hook call at the top level, compliant with React's Rules of Hooks.
 - Bonus: Dashboard `totalSavings` now accurately calculates from `originalPrice - currentPrice` since the combined endpoint returns both fields.
+
+#### AppLayout Sidebar Implementation
+- Fully implemented collapsible sidebar layout in [`AppLayout.tsx`](frontend/src/components/Layout/AppLayout.tsx:20) with responsive behavior:
+  - **Desktop**: Fixed sidebar that collapses from 260px to 64px width via state management. Shows icons only when collapsed.
+  - **Mobile**: Sheet component slides in from the left as a mobile navigation drawer (triggered by hamburger button in top header bar).
+- Sidebar navigation includes:
+  - Dashboard link (HouseIcon, active when on `/dashboard`)
+  - Wishlists section via [`WishlistSection.tsx`](frontend/src/components/Layout/WishlistSection.tsx:21) — collapsible group with "All Wishlists" link
+  - Logout button (SignOutIcon) at bottom
+- WishlistSection behavior:
+  - When sidebar is expanded: Collapsible list showing all user wishlists with game counts (ListIcon + name + count badge)
+  - When sidebar is collapsed: DropdownMenu showing wishlist items
+  - When mobile: Always shows full list inside Sheet content
+- CreateWishlistDialog integration via [`CreateWishlistDialog.tsx`](frontend/src/components/Layout/CreateWishlistDialog.tsx:24):
+  - Triggered from sidebar ("+ New Wishlist" button within WishlistSection area)
+  - Dialog with single text input for name, keyboard support (Enter to submit)
+  - Calls `usePostWishlistMutation`, navigates to newly created wishlist on success
+- Active route/wishlist highlighting via `bg-accent text-accent-foreground` styling with dynamic path matching
+- Uses Phosphor icons throughout (SteamLogoIcon, ListIcon, CaretLeftIcon, CaretRightIcon, HouseIcon, PlusIcon, SignOutIcon)
+
+#### Router Configuration
+- [`router.tsx`](frontend/src/router.tsx:1) fully configured with:
+  - Public routes: `/login`, `/register` wrapped in `PublicRoute` component (redirects to `/dashboard` if authenticated)
+  - Protected routes: `/dashboard`, `/wishlists`, `/wishlists/:id`, `/wishlists/:id/add`, `/game/:steamId` wrapped in `ProtectedRoute` + `AppLayout`
+  - Root path `/` uses `RootRedirect` component: authenticated → `/dashboard`, unauthenticated → `/login`
+  - Catch-all `*` route redirects to `/`
+- Route stubs exist for WishlistsPage, WishlistGamesPage, and AddGamePage (return placeholder divs with TODO comments)
