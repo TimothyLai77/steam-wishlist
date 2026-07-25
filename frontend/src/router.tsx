@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useSelector } from 'react-redux';
 import type { RootState } from './store/store';
 import ProtectedRoute from './components/Layout/ProtectedRoute';
+import AppLayout from './components/Layout/AppLayout';
 
 // Public pages
 import LoginPage from './features/auth/LoginPage';
@@ -50,47 +51,14 @@ const Router = () => {
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
 
-        {/* Protected routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/wishlists"
-          element={
-            <ProtectedRoute>
-              <WishlistsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/wishlists/:id"
-          element={
-            <ProtectedRoute>
-              <WishlistGamesPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/wishlists/:id/add"
-          element={
-            <ProtectedRoute>
-              <AddGamePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/game/:steamId"
-          element={
-            <ProtectedRoute>
-              <GameDetailPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* Protected routes wrapped in AppLayout */}
+        <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/wishlists" element={<WishlistsPage />} />
+          <Route path="/wishlists/:id" element={<WishlistGamesPage />} />
+          <Route path="/wishlists/:id/add" element={<AddGamePage />} />
+          <Route path="/game/:steamId" element={<GameDetailPage />} />
+        </Route>
 
         {/* Catch-all 404 */}
         <Route path="*" element={<Navigate to="/" replace />} />
