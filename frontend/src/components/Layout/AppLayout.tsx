@@ -213,7 +213,7 @@ const AppLayout = () => {
     <div className="flex min-h-screen">
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-30 flex h-screen flex-col border-r bg-background transition-all duration-200 ${collapsed ? 'w-[64px]' : 'w-[260px]'
+        className={`flex h-screen flex-col border-r bg-background transition-all duration-200 ${collapsed ? 'w-[64px]' : 'w-[260px]'
           }`}
       >
         {sidebarContent(false)}
