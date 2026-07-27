@@ -220,9 +220,7 @@ const AppLayout = () => {
       </aside>
 
       {/* Main content */}
-      <main
-        className={`flex-1 transition-all duration-200 ${collapsed ? 'ml-[64px]' : 'ml-[260px]'}`}
-      >
+      <main className="flex-1">
         <Outlet />
       </main>
     </div>
