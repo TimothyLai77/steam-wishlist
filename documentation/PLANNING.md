@@ -184,7 +184,7 @@ This avoids having to rely on `useGetProfileQuery()` state everywhere while stil
 - Navigation: shadcn/ui `Sheet` (mobile menu), `DropdownMenu` (collapsed sidebar wishlists), `Collapsible` (wishlist section expansion)
 - Badges/Tags: shadcn/ui `Badge` for discount indicators
 
-**Currently installed components** (`src/components/ui/`): `badge`, `button`, `card`, `collapsible`, `dialog`, `dropdown-menu`, `input`, `label`, `sheet`
+**Currently installed components** (`src/components/ui/`): `badge`, `button`, `card`, `collapsible`, `dialog`, `dropdown-menu`, `input`, `label`, `sheet`, `table`, `toast`
 
 **Note:** shadcn/ui components are installed into your codebase (`src/components/ui/`) via CLI, not as a runtime dependency. Components are added incrementally as each feature requires them.
 
@@ -343,8 +343,8 @@ VITE_API_URL=http://localhost:4000/api
 - [x] WishlistSection component for sidebar wishlist navigation
 - [x] CreateWishlistDialog integrated into sidebar for quick wishlist creation
 - [x] Sidebar displays wishlists with game counts via RTK Query
-- [ ] Frontend wishlists management page (list, create, delete wishlists) — placeholder stub
-- [ ] Frontend wishlist games page with table view — placeholder stub
+- [x] Frontend wishlists management page (list, create, rename, delete wishlists)
+- [x] Frontend wishlist games page with table view (sorting, on-sale filter)
 - [ ] Add game flow (paste AppID or URL → select wishlist → add) — placeholder stub
 - [x] Default wishlist creation on user registration
 - [ ] Move game between wishlists functionality
@@ -477,8 +477,8 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Sidebar integrates `useGetWishlistsQuery` to display wishlists with game counts
 - [x] Sidebar integrates `usePostWishlistMutation` for creating wishlists directly from navigation
 - [x] Router fully configured with all planned routes, public route guards, root redirect, and 404 catch-all
-- [ ] Wishlists management page (CRUD UI) — currently placeholder stub
-- [ ] Wishlist games page (table view) — currently placeholder stub
+- [x] Wishlists management page (CRUD UI) — grid of cards with create modal and kebab menus
+- [x] Wishlist games page (table view) — sortable columns with on-sale filter
 - [ ] Add game flow (AppID/URL input) — currently placeholder stub
 - [ ] Move game between wishlists UI
 
@@ -502,8 +502,6 @@ Backend follows a consistent layering pattern:
 - ES module imports require explicit `.js` extensions on relative paths
 
 #### Next Steps
-- Implement wishlists management page UI (list, create, edit, delete) — currently placeholder stub
-- Implement wishlist games page UI (table view with sorting/filtering) — currently placeholder stub
 - Implement add game flow (AppID/URL input → Steam fetch → add to wishlist) — currently placeholder stub
 
 #### React Hooks Fix (DashboardPage)
@@ -531,10 +529,32 @@ Backend follows a consistent layering pattern:
 - Active route/wishlist highlighting via `bg-accent text-accent-foreground` styling with dynamic path matching
 - Uses Phosphor icons throughout (SteamLogoIcon, ListIcon, CaretLeftIcon, CaretRightIcon, HouseIcon, PlusIcon, SignOutIcon)
 
+#### WishlistsPage Implementation
+- Fully implemented wishlists management page in [`WishlistsPage.tsx`](frontend/src/features/wishlists/WishlistsPage.tsx:1):
+  - **Header**: "Wishlists" title with subtitle and "New Wishlist" button (top-right)
+  - **Grid layout**: Responsive grid of wishlist cards (1/2/3 columns based on viewport)
+  - **Per-card interaction**:
+    - Whole card is clickable → navigates to `/wishlists/:id` (detail view)
+    - ⋮ (kebab) menu in card corner appears on hover for rename/delete actions; `stopPropagation` prevents navigation
+  - **Create dialog**: Modal with name input, keyboard support (Enter to submit), calls `usePostWishlistMutation`
+  - **Rename dialog**: Modal pre-filled with current name, calls `usePutWishlistMutation`
+  - **Delete**: Confirmation prompt before calling `useDeleteWishlistMutation`
+  - **Toast notifications**: Success/error feedback via [`toast.add()`](frontend/src/components/ui/toast.tsx:8) for all CRUD operations
+  - **Empty state**: Illustrative placeholder with CTA when no wishlists exist
+
+#### WishlistGamesPage Implementation
+- Fully implemented wishlist games page in [`WishlistGamesPage.tsx`](frontend/src/features/wishlists/WishlistGamesPage.tsx:1):
+  - **Header**: Wishlist name, game count ("X of Y games on sale" when filtered), Refresh and "Add Game" buttons
+  - **Back navigation**: ListIcon button returns to `/wishlists`
+  - **Filter**: "Show only on sale" checkbox
+  - **Sortable table columns**: Game (name), Price, Discount, Added — click to toggle asc/desc sort with visual indicators
+  - **Table rows**: Game image thumbnail, name, price, discount badge, date added; clickable → navigates to `/game/:steamId`
+  - **Empty states**: Contextual messages for "no games yet" vs "no games match filter" with CTA buttons
+
 #### Router Configuration
 - [`router.tsx`](frontend/src/router.tsx:1) fully configured with:
   - Public routes: `/login`, `/register` wrapped in `PublicRoute` component (redirects to `/dashboard` if authenticated)
   - Protected routes: `/dashboard`, `/wishlists`, `/wishlists/:id`, `/wishlists/:id/add`, `/game/:steamId` wrapped in `ProtectedRoute` + `AppLayout`
   - Root path `/` uses `RootRedirect` component: authenticated → `/dashboard`, unauthenticated → `/login`
   - Catch-all `*` route redirects to `/`
-- Route stubs exist for WishlistsPage, WishlistGamesPage, and AddGamePage (return placeholder divs with TODO comments)
+- Route stubs exist for AddGamePage (returns placeholder div with TODO comment)

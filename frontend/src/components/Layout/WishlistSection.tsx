@@ -2,7 +2,7 @@ import { type Wishlist } from '../../app/services/wishlistApi';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../../components/ui/collapsible';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../components/ui/dropdown-menu';
 import { Button } from '../../../components/ui/button';
-import { ListIcon, CaretDownIcon, PlusIcon } from '@phosphor-icons/react';
+import { ListIcon, CaretDownIcon } from '@phosphor-icons/react';
 
 interface WishlistSectionProps {
   collapsed: boolean;
@@ -15,7 +15,6 @@ interface WishlistSectionProps {
   isActive: (path: string) => boolean;
   isWishlistActive: (id: string) => boolean;
   handleNav: (path: string) => void;
-  onCreateWishlistClick: () => void;
 }
 
 export const WishlistSection = ({
@@ -29,7 +28,6 @@ export const WishlistSection = ({
   isActive,
   isWishlistActive,
   handleNav,
-  onCreateWishlistClick,
 }: WishlistSectionProps) => {
   return (
     <div className="mb-1">
@@ -65,9 +63,8 @@ export const WishlistSection = ({
                 <DropdownMenuItem
                   key={wishlist.id}
                   onClick={() => handleNav(`/wishlists/${wishlist.id}`)}
-                  className={`flex items-center justify-between ${
-                    isWishlistActive(wishlist.id) ? activeLinkClass : ''
-                  }`}
+                  className={`flex items-center justify-between ${isWishlistActive(wishlist.id) ? activeLinkClass : ''
+                    }`}
                 >
                   <span className="ml-2 truncate">{wishlist.name}</span>
                   <span className="mr-2 text-[10px] text-muted-foreground">
@@ -81,9 +78,8 @@ export const WishlistSection = ({
         <Collapsible open={wishlistsOpen} onOpenChange={setWishlistsOpen}>
           <div
             onClick={() => handleNav('/wishlists')}
-            className={`flex w-full cursor-pointer items-center justify-between px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
-              isActive('/wishlists') ? activeLinkClass : ''
-            }`}
+            className={`flex w-full cursor-pointer items-center justify-between px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${isActive('/wishlists') ? activeLinkClass : ''
+              }`}
           >
             <div className="flex flex-1 items-center gap-2.5">
               <ListIcon size={18} weight={isActive('/wishlists') ? 'fill' : 'regular'} />
@@ -115,9 +111,8 @@ export const WishlistSection = ({
                 <button
                   key={wishlist.id}
                   onClick={() => handleNav(`/wishlists/${wishlist.id}`)}
-                  className={`ml-6 flex items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-accent hover:text-accent-foreground ${
-                    isWishlistActive(wishlist.id) ? activeLinkClass : ''
-                  }`}
+                  className={`ml-6 flex items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-accent hover:text-accent-foreground ${isWishlistActive(wishlist.id) ? activeLinkClass : ''
+                    }`}
                 >
                   <ListIcon size={12} weight={isWishlistActive(wishlist.id) ? 'fill' : 'regular'} />
                   <span className="truncate">{wishlist.name}</span>
@@ -125,9 +120,9 @@ export const WishlistSection = ({
                     {wishlist.gameCount ?? 0}
                   </span>
                 </button>
-                ))
-              )}
-            </CollapsibleContent>
+              ))
+            )}
+          </CollapsibleContent>
         </Collapsible>
       )}
     </div>
