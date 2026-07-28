@@ -10,7 +10,7 @@ const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
  * - tagTypes: global registry for cache invalidation
  *
  * Domain-specific endpoints are injected via injectEndpoints() in separate
- * service files (authApi.ts, wishlistApi.ts, gameApi.ts).
+ * service files (authApi.ts, wishlistApi.ts).
  */
 export const api = createApi({
   reducerPath: 'api',

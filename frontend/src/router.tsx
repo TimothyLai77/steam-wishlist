@@ -12,7 +12,6 @@ import RegisterPage from './features/auth/RegisterPage';
 import DashboardPage from './features/dashboard/DashboardPage';
 import WishlistsPage from './features/wishlists/WishlistsPage';
 import WishlistGamesPage from './features/wishlists/WishlistGamesPage';
-import GameDetailPage from './features/games/GameDetailPage';
 
 // Redirect authenticated users away from login/register
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
@@ -55,7 +54,6 @@ const Router = () => {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/wishlists" element={<WishlistsPage />} />
           <Route path="/wishlists/:id" element={<WishlistGamesPage />} />
-          <Route path="/game/:steamId" element={<GameDetailPage />} />
         </Route>
 
         {/* Catch-all 404 */}

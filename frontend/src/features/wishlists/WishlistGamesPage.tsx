@@ -230,7 +230,7 @@ const WishlistGamesPage = () => {
                                     <TableRow
                                         key={game.steamId}
                                         className="cursor-pointer hover:bg-muted/50 transition-colors"
-                                        onClick={() => navigate(`/game/${game.steamId}`)}
+                                        onClick={() => window.open(`https://store.steampowered.com/app/${game.steamId}`, '_blank')}
                                     >
                                         <TableCell className="text-muted-foreground">
                                             {index + 1}

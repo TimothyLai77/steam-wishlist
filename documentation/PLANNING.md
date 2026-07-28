@@ -157,9 +157,6 @@ services:
    - Filter by: on sale / not on sale
    - Actions: view details, edit notes, remove, move to another wishlist
 6. **Add Game Dialog** — Modal dialog (on Wishlist Games Page) to enter a Steam AppID or Steam store URL, then add to the current wishlist
-7. **Game Detail Page** — Full game info (description, screenshots, which wishlists it's in) with links to:
-   - Steam Store page
-   - SteamDB price history
 
 ### State Management (Redux Toolkit)
 - **app/services/api.ts** — Central `createApi()` with shared `fetchBaseQuery` configuration (base URL, token injection, tag types). No endpoints defined here.
@@ -195,7 +192,6 @@ This avoids having to rely on `useGetProfileQuery()` state everywhere while stil
 /dashboard          → DashboardPage (protected)
 /wishlists          → WishlistsPage (protected)          # Lists all user's wishlists
 /wishlists/:id      → WishlistGamesPage (protected)     # Games in a specific wishlist
-/game/:steamId      → GameDetailPage (protected)
 ```
 
 ---
@@ -282,8 +278,6 @@ This avoids having to rely on `useGetProfileQuery()` state everywhere while stil
 │       │   │   ├── WishlistsPage.tsx
 │       │   │   ├── WishlistGamesPage.tsx
 │       │   │   └── AddGameDialog.tsx
-│       │   ├── games/
-│       │   │   └── GameDetailPage.tsx
 │       │   └── dashboard/
 │       │       └── DashboardPage.tsx
 │       ├── components/
@@ -354,7 +348,6 @@ VITE_API_URL=http://localhost:4000/api
 - [ ] User notes on games
 - [ ] Error handling and loading states
 - [ ] Theme support (dark/light mode)
-- [ ] Add SteamDB price history links on game detail page
 
 ### Phase 4: Optional Enhancements
 - [ ] Wishlist sharing links (read-only view)
@@ -547,13 +540,13 @@ Backend follows a consistent layering pattern:
   - **Back navigation**: ListIcon button returns to `/wishlists`
   - **Filter**: "Show only on sale" checkbox
   - **Sortable table columns**: Game (name), Price, Discount, Added — click to toggle asc/desc sort with visual indicators
-  - **Table rows**: Game image thumbnail, name, price, discount badge, date added; clickable → navigates to `/game/:steamId`
+  - **Table rows**: Game image thumbnail, name, price, discount badge, date added; clickable → opens Steam Store page in new tab
   - **Empty states**: Contextual messages for "no games yet" vs "no games match filter" with CTA buttons
 
 #### Router Configuration
 - [`router.tsx`](frontend/src/router.tsx:1) fully configured with:
   - Public routes: `/login`, `/register` wrapped in `PublicRoute` component (redirects to `/dashboard` if authenticated)
-  - Protected routes: `/dashboard`, `/wishlists`, `/wishlists/:id`, `/game/:steamId` wrapped in `ProtectedRoute` + `AppLayout`
+  - Protected routes: `/dashboard`, `/wishlists`, `/wishlists/:id` wrapped in `ProtectedRoute` + `AppLayout`
   - Root path `/` uses `RootRedirect` component: authenticated → `/dashboard`, unauthenticated → `/login`
   - Catch-all `*` route redirects to `/`
 
