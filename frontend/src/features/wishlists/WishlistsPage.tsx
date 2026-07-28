@@ -125,14 +125,12 @@ const WishlistsPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Wishlists</h1>
-          <p className="text-muted-foreground">
-            Manage your game wishlists
-          </p>
+          <h1 className="text-2xl font-semibold">All Wishlists</h1>
+
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <PlusIcon size={18} weight="bold" className="mr-2" />
