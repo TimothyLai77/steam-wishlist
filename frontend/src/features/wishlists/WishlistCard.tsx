@@ -35,7 +35,7 @@ export const WishlistCard = ({
 
     return (
         <Card
-            className="group cursor-pointer hover:border-primary/50 hover:shadow-md transition-colors relative"
+            className="group cursor-pointer hover:border-primary/50 hover:shadow-md transition-colors relative py-0"
             onClick={() => navigate(`/wishlists/${id}`)}
         >
             <DropdownMenu>
@@ -67,12 +67,12 @@ export const WishlistCard = ({
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            <CardContent className="pt-6 pb-6 pr-12">
+            <CardContent className="pt-3 pb-3 px-4">
                 <div className="flex items-center gap-2 mb-1">
-                    <ListIcon size={18} weight="fill" className="text-primary" />
-                    <h2 className="text-lg font-semibold truncate">{name}</h2>
+                    <ListIcon size={18} weight="fill" className="text-primary -translate-y-0.75" />
+                    <h2 className="text-lg font-semibold leading-none truncate">{name}</h2>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground text-left">
                     {gameCount === 1 ? '1 game' : `${gameCount} games`}
                 </p>
             </CardContent>
