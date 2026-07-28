@@ -1,38 +1,40 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
 import { usePostGameMutation } from '../../app/services/wishlistApi';
 import { Button } from '../../../components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '../../../components/ui/dialog';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
-import {
-    Card,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-    CardContent,
-} from '../../../components/ui/card';
 import { toast } from '../../../components/ui/toast';
-import { ArrowLeftIcon } from '@phosphor-icons/react';
 
 const STEAM_URL_REGEX = /app\/(\d+)/;
 
-const AddGamePage = () => {
-    const { id: wishlistId } = useParams<{ id: string }>();
-    const navigate = useNavigate();
+interface AddGameDialogProps {
+    wishlistId: string;
+    triggerNode: React.ReactNode;
+}
+
+export const AddGameDialog = ({ wishlistId, triggerNode }: AddGameDialogProps) => {
+    const [open, setOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [postGame, { isLoading }] = usePostGameMutation();
 
     const extractAppId = (value: string): string | null => {
         const trimmed = value.trim();
 
-        // Try matching Steam URL format first
         const urlMatch = trimmed.match(STEAM_URL_REGEX);
         if (urlMatch && urlMatch[1]) {
             return urlMatch[1];
         }
 
-        // Try parsing as plain number
         const num = Number(trimmed);
         if (!isNaN(num) && num > 0 && String(num) === trimmed) {
             return trimmed;
@@ -65,7 +67,13 @@ const AddGamePage = () => {
 
         try {
             await postGame({ wishlistId, steamId: appId }).unwrap();
-            navigate(`/wishlists/${wishlistId}`);
+            setInputValue('');
+            setOpen(false);
+            toast.add({
+                title: 'Game added',
+                description: 'The game was added to your wishlist.',
+                type: 'success',
+            });
         } catch {
             toast.add({
                 title: 'Failed to add game',
@@ -75,22 +83,26 @@ const AddGamePage = () => {
         }
     };
 
-    if (!wishlistId) {
-        return <div>Invalid wishlist.</div>;
-    }
+    const handleOpenChange = (newOpen: boolean) => {
+        if (!newOpen) {
+            setInputValue('');
+        }
+        setOpen(newOpen);
+    };
 
     return (
-        <div className="flex items-center justify-center min-h-[70vh]">
-            <Card className="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle>Add Game to Wishlist</CardTitle>
-                    <CardDescription>
-                        Enter a Steam AppID or store URL to add a game
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>{triggerNode}</DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Add Game</DialogTitle>
+                    <DialogDescription>
+                        Enter a Steam AppID or store URL
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit}>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
                             <Label htmlFor="steam-input">Steam AppID or URL</Label>
                             <Input
                                 id="steam-input"
@@ -99,23 +111,24 @@ const AddGamePage = () => {
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 disabled={isLoading}
+                                autoFocus
                             />
                         </div>
-                        <div className="flex gap-2">
-                            <Button type="submit" disabled={isLoading}>
-                                {isLoading ? 'Adding...' : 'Add'}
-                            </Button>
-                            <Link to={`/wishlists/${wishlistId}`}>
-                                <Button type="button" variant="outline">
-                                    <ArrowLeftIcon /> Back
-                                </Button>
-                            </Link>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleOpenChange(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={isLoading}>
+                            {isLoading ? 'Adding...' : 'Add'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 };
-
-export default AddGamePage;

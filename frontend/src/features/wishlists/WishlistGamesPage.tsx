@@ -5,6 +5,7 @@ import {
     useGetWishlistsQuery,
 } from '../../app/services/wishlistApi';
 import type { GameSummary } from '../../app/services/wishlistApi';
+import { AddGameDialog } from './AddGameDialog';
 import { Button } from '../../../components/ui/button';
 import {
     Card,
@@ -131,13 +132,12 @@ const WishlistGamesPage = () => {
                         <ArrowClockwiseIcon size={16} className="mr-1" />
                         Refresh
                     </Button>
-                    <Button
-                        size="sm"
-                        onClick={() => navigate(`/wishlists/${wishlistId}/add`)}
-                    >
-                        <PlusIcon size={16} weight="bold" className="mr-1" />
-                        Add Game
-                    </Button>
+                    <AddGameDialog wishlistId={wishlistId || ''} triggerNode={
+                        <Button size="sm">
+                            <PlusIcon size={16} weight="bold" className="mr-1" />
+                            Add Game
+                        </Button>
+                    } />
                 </div>
             </div>
 
@@ -170,10 +170,12 @@ const WishlistGamesPage = () => {
                                 : 'Try adjusting your filters.'}
                         </p>
                         {games.length === 0 && (
-                            <Button className="mt-4" onClick={() => navigate(`/wishlists/${wishlistId}/add`)}>
-                                <PlusIcon size={18} weight="bold" className="mr-2" />
-                                Add Game
-                            </Button>
+                            <AddGameDialog wishlistId={wishlistId || ''} triggerNode={
+                                <Button className="mt-4">
+                                    <PlusIcon size={18} weight="bold" className="mr-2" />
+                                    Add Game
+                                </Button>
+                            } />
                         )}
                     </CardContent>
                 </Card>
