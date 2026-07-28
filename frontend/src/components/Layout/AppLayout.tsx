@@ -4,17 +4,15 @@ import { useDispatch } from 'react-redux';
 import { Sheet, SheetContent, SheetTrigger } from '../../../components/ui/sheet';
 import { Button } from '../../../components/ui/button';
 import { logout } from '../../features/auth/authSlice';
-import { useGetWishlistsQuery, usePostWishlistMutation } from '../../app/services/wishlistApi';
+import { useGetWishlistsQuery } from '../../app/services/wishlistApi';
 import {
   SteamLogoIcon,
   ListIcon,
   CaretLeftIcon,
   CaretRightIcon,
   HouseIcon,
-  PlusIcon,
   SignOutIcon,
 } from '@phosphor-icons/react';
-import { CreateWishlistDialog } from './CreateWishlistDialog';
 import { WishlistSection } from './WishlistSection';
 
 const AppLayout = () => {
@@ -24,13 +22,10 @@ const AppLayout = () => {
 
   const [collapsed, setCollapsed] = useState(false);
   const [wishlistsOpen, setWishlistsOpen] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [newWishlistName, setNewWishlistName] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const { data: wishlists, isLoading: wishlistsLoading } = useGetWishlistsQuery();
-  const [createWishlist, { isLoading: creating }] = usePostWishlistMutation();
 
   const currentWishlistId = location.pathname.match(/^\/wishlists\/([^/]+)/)?.[1];
 
@@ -60,27 +55,6 @@ const AppLayout = () => {
   const handleLogout = () => {
     dispatch(logout());
     navigate('/login', { replace: true });
-  };
-
-  // Handle create wishlist
-  const handleCreateWishlist = async () => {
-    if (!newWishlistName.trim()) return;
-    try {
-      const result = await createWishlist({ name: newWishlistName.trim() }).unwrap();
-      setCreateDialogOpen(false);
-      setNewWishlistName('');
-      navigate(`/wishlists/${result.id}`);
-    } catch (error) {
-      console.error('Failed to create wishlist:', error);
-    }
-  };
-
-  // Handle keyboard submit in dialog
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleCreateWishlist();
-    }
   };
 
   // Close mobile sheet on navigation
@@ -160,7 +134,6 @@ const AppLayout = () => {
             isActive={isActive}
             isWishlistActive={isWishlistActive}
             handleNav={handleNav}
-            onCreateWishlistClick={() => setCreateDialogOpen(true)}
           />
         </div>
       </nav>
