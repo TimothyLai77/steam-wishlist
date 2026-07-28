@@ -156,7 +156,7 @@ services:
    - Sort by: name, price, discount %, date added
    - Filter by: on sale / not on sale
    - Actions: view details, edit notes, remove, move to another wishlist
-6. **Add Game Page** — Simple form to enter a Steam AppID or Steam store URL, then add to a selected wishlist (or default wishlist)
+6. **Add Game Dialog** — Modal dialog (on Wishlist Games Page) to enter a Steam AppID or Steam store URL, then add to the current wishlist
 7. **Game Detail Page** — Full game info (description, screenshots, which wishlists it's in) with links to:
    - Steam Store page
    - SteamDB price history
@@ -195,7 +195,6 @@ This avoids having to rely on `useGetProfileQuery()` state everywhere while stil
 /dashboard          → DashboardPage (protected)
 /wishlists          → WishlistsPage (protected)          # Lists all user's wishlists
 /wishlists/:id      → WishlistGamesPage (protected)     # Games in a specific wishlist
-/wishlists/:id/add  → AddGamePage (protected)           # Add game to specific wishlist
 /game/:steamId      → GameDetailPage (protected)
 ```
 
@@ -282,7 +281,7 @@ This avoids having to rely on `useGetProfileQuery()` state everywhere while stil
 │       │   ├── wishlists/
 │       │   │   ├── WishlistsPage.tsx
 │       │   │   ├── WishlistGamesPage.tsx
-│       │   │   └── AddGamePage.tsx
+│       │   │   └── AddGameDialog.tsx
 │       │   ├── games/
 │       │   │   └── GameDetailPage.tsx
 │       │   └── dashboard/
@@ -345,7 +344,7 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Sidebar displays wishlists with game counts via RTK Query
 - [x] Frontend wishlists management page (list, create, rename, delete wishlists)
 - [x] Frontend wishlist games page with table view (sorting, on-sale filter)
-- [ ] Add game flow (paste AppID or URL → select wishlist → add) — placeholder stub
+- [x] Add game flow (paste AppID or URL → add via modal dialog)
 - [x] Default wishlist creation on user registration
 - [ ] Move game between wishlists functionality
 
@@ -479,7 +478,7 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Router fully configured with all planned routes, public route guards, root redirect, and 404 catch-all
 - [x] Wishlists management page (CRUD UI) — grid of cards with create modal and kebab menus
 - [x] Wishlist games page (table view) — sortable columns with on-sale filter
-- [ ] Add game flow (AppID/URL input) — currently placeholder stub
+- [x] Add game flow (AppID/URL input via AddGameDialog modal)
 - [ ] Move game between wishlists UI
 
 #### Architecture Pattern
@@ -502,7 +501,7 @@ Backend follows a consistent layering pattern:
 - ES module imports require explicit `.js` extensions on relative paths
 
 #### Next Steps
-- Implement add game flow (AppID/URL input → Steam fetch → add to wishlist) — currently placeholder stub
+- Implement move game between wishlists functionality
 
 #### React Hooks Fix (DashboardPage)
 - DashboardPage originally called `useGetGamesQuery(id)` inside `.map()` over dynamic wishlist IDs, violating the Rules of Hooks (hook count changed between renders as wishlists loaded).
@@ -554,7 +553,16 @@ Backend follows a consistent layering pattern:
 #### Router Configuration
 - [`router.tsx`](frontend/src/router.tsx:1) fully configured with:
   - Public routes: `/login`, `/register` wrapped in `PublicRoute` component (redirects to `/dashboard` if authenticated)
-  - Protected routes: `/dashboard`, `/wishlists`, `/wishlists/:id`, `/wishlists/:id/add`, `/game/:steamId` wrapped in `ProtectedRoute` + `AppLayout`
+  - Protected routes: `/dashboard`, `/wishlists`, `/wishlists/:id`, `/game/:steamId` wrapped in `ProtectedRoute` + `AppLayout`
   - Root path `/` uses `RootRedirect` component: authenticated → `/dashboard`, unauthenticated → `/login`
   - Catch-all `*` route redirects to `/`
-- Route stubs exist for AddGamePage (returns placeholder div with TODO comment)
+
+#### AddGameDialog Implementation
+- Modal dialog component in [`AddGameDialog.tsx`](frontend/src/features/wishlists/AddGameDialog.tsx:1) integrated into WishlistGamesPage:
+  - Triggered by "Add Game" button in the page header and empty state
+  - Input field accepts Steam AppID (e.g., "123456") or Steam store URL (e.g., "https://store.steampowered.com/app/123456/Game_Name")
+  - URL/AppID parsing via `/app\/(\d+)/` regex, falling back to plain number parsing
+  - Calls `usePostGameMutation` from [`wishlistApi.ts`](frontend/src/app/services/wishlistApi.ts:147)
+  - On success: closes dialog, clears input, shows toast notification
+  - On error: displays error toast (invalid input, game not found, duplicate, etc.)
+- Replaced separate AddGamePage route with inline modal for simpler UX
