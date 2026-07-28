@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   useGetWishlistsQuery,
   usePostWishlistMutation,
@@ -8,10 +7,6 @@ import {
 } from '../../app/services/wishlistApi';
 import { Button } from '../../../components/ui/button';
 import {
-  Card,
-  CardContent,
-} from '../../../components/ui/card';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -19,19 +14,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../../components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../../../components/ui/dropdown-menu';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
-import { PlusIcon, DotsThreeVerticalIcon, ListIcon, PencilSimpleIcon, TrashIcon } from '@phosphor-icons/react';
+import { PlusIcon, ListIcon } from '@phosphor-icons/react';
 import { toast } from '../../../components/ui/toast';
+import { WishlistCard } from './WishlistCard';
 
 const WishlistsPage = () => {
-  const navigate = useNavigate();
   const { data: wishlists = [], isLoading } = useGetWishlistsQuery();
   const [createWishlist, { isLoading: creating }] = usePostWishlistMutation();
   const [updateWishlist, { isLoading: updating }] = usePutWishlistMutation();
@@ -154,52 +143,15 @@ const WishlistsPage = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {wishlists.map((wishlist: { id: string; name: string; gameCount: number }) => (
-            <Card
+            <WishlistCard
               key={wishlist.id}
-              className="group cursor-pointer hover:border-primary/50 hover:shadow-md transition-colors relative"
-              onClick={() => navigate(`/wishlists/${wishlist.id}`)}
-            >
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground"
-                  >
-                    <DotsThreeVerticalIcon size={18} weight="bold" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => openRenameDialog(wishlist.id, wishlist.name)}
-                  >
-                    <PencilSimpleIcon size={16} className="mr-2" />
-                    Rename
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleDelete(wishlist.id, wishlist.name)}
-                    className="text-destructive focus:text-destructive"
-                    disabled={deleting}
-                  >
-                    <TrashIcon size={16} className="mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <CardContent className="pt-6 pb-6 pr-12">
-                <div className="flex items-center gap-2 mb-1">
-                  <ListIcon size={18} weight="fill" className="text-primary" />
-                  <h2 className="text-lg font-semibold truncate">{wishlist.name}</h2>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {wishlist.gameCount === 1 ? '1 game' : `${wishlist.gameCount} games`}
-                </p>
-              </CardContent>
-            </Card>
+              id={wishlist.id}
+              name={wishlist.name}
+              gameCount={wishlist.gameCount}
+              onRename={openRenameDialog}
+              onDelete={handleDelete}
+              deleting={deleting}
+            />
           ))}
         </div>
       )}
