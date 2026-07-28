@@ -22,6 +22,7 @@ import { Badge } from '../../../components/ui/badge';
 import {
     PlusIcon,
     ListIcon,
+    ArrowLeftIcon,
     ArrowClockwiseIcon,
     CaretUpDownIcon,
     CaretUpIcon,
@@ -104,19 +105,22 @@ const WishlistGamesPage = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2">
                         <Button variant="ghost" size="icon" onClick={() => navigate('/wishlists')}>
-                            <ListIcon size={18} />
+                            <ArrowLeftIcon size={24} />
                         </Button>
-                        <h1 className="text-2xl font-semibold">
-                            {wishlist?.name || 'Wishlist'}
-                        </h1>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-2xl font-semibold">
+                                {wishlist?.name || 'Wishlist'}
+                            </h1>
+                            <span className="text-muted-foreground">•</span>
+                            <span className="text-muted-foreground">
+                                {sortedGames.length === filteredGames.length
+                                    ? `${games.length} ${games.length === 1 ? 'game' : 'games'}`
+                                    : `${filteredGames.length} of ${games.length} games on sale`}
+                            </span>
+                        </div>
                     </div>
-                    <p className="text-muted-foreground ml-10">
-                        {sortedGames.length === filteredGames.length
-                            ? `${games.length} ${games.length === 1 ? 'game' : 'games'}`
-                            : `${filteredGames.length} of ${games.length} games on sale`}
-                    </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button
