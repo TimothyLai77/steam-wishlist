@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.middleware.js';
-import { getGamesHandler, addGameHandler, deleteGameHandler } from '../controllers/game.controller.js';
+import { getGamesHandler, addGameHandler, deleteGameHandler, moveGameHandler } from '../controllers/game.controller.js';
 
 const router = Router();
 
@@ -13,5 +13,6 @@ router.post('/wishlists/:wishlistId/games', addGameHandler);
 
 // Game endpoints (using composite key format: steamId+wishlistId)
 router.delete('/games/:gameId', deleteGameHandler);
+router.post('/games/:gameId/move', moveGameHandler);
 
 export default router;

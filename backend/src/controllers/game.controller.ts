@@ -1,12 +1,12 @@
 import type { Request, Response } from 'express';
-import { getGamesByWishlistId, addGameToWishlist, removeGameFromWishlist } from '../services/game.service.js';
+import { getGamesByWishlistId, addGameToWishlist, removeGameFromWishlist, moveGameToWishlist } from '../services/game.service.js';
 
 export const getGamesHandler = async (req: Request, res: Response) => {
   try {
-    const wishlistId = req.params.wishlistId;
+    const wishlistId = req.params.wishlistId as string;
     const userId = req.user!.userId;
 
-    if (!wishlistId || Array.isArray(wishlistId)) {
+    if (!wishlistId) {
       return res.status(400).json({ message: 'Invalid wishlist ID' });
     }
 
@@ -25,10 +25,10 @@ export const getGamesHandler = async (req: Request, res: Response) => {
 
 export const addGameHandler = async (req: Request, res: Response) => {
   try {
-    const wishlistId = req.params.wishlistId;
+    const wishlistId = req.params.wishlistId as string;
     const { steamId } = req.body as { steamId: string | number };
 
-    if (!wishlistId || Array.isArray(wishlistId)) {
+    if (!wishlistId) {
       return res.status(400).json({ message: 'Invalid wishlist ID' });
     }
 
@@ -53,9 +53,9 @@ export const addGameHandler = async (req: Request, res: Response) => {
 
 export const deleteGameHandler = async (req: Request, res: Response) => {
   try {
-    const { gameId } = req.params;
+    const gameId = req.params.gameId as string;
 
-    if (!gameId || Array.isArray(gameId)) {
+    if (!gameId) {
       return res.status(400).json({ message: 'Invalid game ID' });
     }
 
@@ -82,6 +82,52 @@ export const deleteGameHandler = async (req: Request, res: Response) => {
       }
       if (error.message === 'Game not found in wishlist') {
         return res.status(404).json({ message: error.message });
+      }
+      return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const moveGameHandler = async (req: Request, res: Response) => {
+  try {
+    const gameId = req.params.gameId as string;
+    const { targetWishlistId } = req.body as { targetWishlistId?: string };
+
+    if (!gameId) {
+      return res.status(400).json({ message: 'Invalid game ID' });
+    }
+
+    if (!targetWishlistId) {
+      return res.status(400).json({ message: 'targetWishlistId is required' });
+    }
+
+    const plusIndex = gameId.lastIndexOf('+');
+    if (plusIndex === -1) {
+      return res.status(400).json({ message: 'Invalid game ID format' });
+    }
+
+    const steamId = parseInt(gameId.substring(0, plusIndex), 10);
+    const sourceWishlistId = gameId.substring(plusIndex + 1);
+
+    if (isNaN(steamId) || !sourceWishlistId) {
+      return res.status(400).json({ message: 'Invalid game ID format' });
+    }
+
+    const userId = req.user!.userId;
+    const result = await moveGameToWishlist(sourceWishlistId, targetWishlistId, steamId, userId);
+
+    res.json(result);
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'Source wishlist not found' || error.message === 'Target wishlist not found') {
+        return res.status(404).json({ message: error.message });
+      }
+      if (error.message === 'Game not found in source wishlist') {
+        return res.status(404).json({ message: error.message });
+      }
+      if (error.message === 'Source and target wishlists are the same') {
+        return res.status(400).json({ message: error.message });
       }
       return res.status(500).json({ message: 'Server error', error: error.message });
     }

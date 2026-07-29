@@ -174,3 +174,60 @@ export const removeGameFromWishlist = async (
     where: { steamId_wishlistId: { steamId, wishlistId } },
   });
 };
+
+export interface MoveGameResult {
+  success: boolean;
+  moved: boolean;
+}
+
+export const moveGameToWishlist = async (
+  sourceWishlistId: string,
+  targetWishlistId: string,
+  steamId: number,
+  userId: string,
+): Promise<MoveGameResult> => {
+  if (sourceWishlistId === targetWishlistId) {
+    throw new Error('Source and target wishlists are the same');
+  }
+
+  return await prisma.$transaction(async (tx) => {
+    const sourceWishlist = await tx.wishlist.findFirst({
+      where: { id: sourceWishlistId, userId },
+    });
+    if (!sourceWishlist) {
+      throw new Error('Source wishlist not found');
+    }
+
+    const targetWishlist = await tx.wishlist.findFirst({
+      where: { id: targetWishlistId, userId },
+    });
+    if (!targetWishlist) {
+      throw new Error('Target wishlist not found');
+    }
+
+    const sourceGame = await tx.wishlistGame.findUnique({
+      where: { steamId_wishlistId: { steamId, wishlistId: sourceWishlistId } },
+    });
+    if (!sourceGame) {
+      throw new Error('Game not found in source wishlist');
+    }
+
+    const existingInTarget = await tx.wishlistGame.findUnique({
+      where: { steamId_wishlistId: { steamId, wishlistId: targetWishlistId } },
+    });
+
+    if (existingInTarget) {
+      await tx.wishlistGame.delete({
+        where: { steamId_wishlistId: { steamId, wishlistId: sourceWishlistId } },
+      });
+      return { success: true, moved: false };
+    }
+
+    await tx.wishlistGame.update({
+      where: { steamId_wishlistId: { steamId, wishlistId: sourceWishlistId } },
+      data: { wishlistId: targetWishlistId },
+    });
+
+    return { success: true, moved: true };
+  });
+};
