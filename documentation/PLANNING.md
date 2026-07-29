@@ -331,7 +331,7 @@ VITE_API_URL=http://localhost:4000/api
 ### Phase 2: Core Wishlist Features
 - [x] Implement Steam API integration (fetch game details by AppID)
 - [x] CRUD endpoints for wishlists (create, list, update, delete)
-- [x] CRUD endpoints for wishlist games (add by AppID/URL)
+- [x] CRUD endpoints for wishlist games (add by AppID/URL, remove with confirmation dialog)
 - [x] AppLayout sidebar with collapsible navigation and mobile Sheet drawer
 - [x] WishlistSection component for sidebar wishlist navigation
 - [x] CreateWishlistDialog integrated into sidebar for quick wishlist creation
@@ -438,17 +438,17 @@ VITE_API_URL=http://localhost:4000/api
     - Verifies wishlist ownership
     - Checks for duplicate (composite key: steamId + wishlistId)
     - Falls back to "Game {steamId}" if Steam fetch fails
-  - `updateGameNotes(wishlistId, steamId, notes, userId)` — update notes field
-  - `removeGameFromWishlist(wishlistId, steamId, userId)` — delete by composite key
-  - `moveGameToWishlist(sourceWishlistId, targetWishlistId, steamId, userId)` — move between wishlists
+  - `updateGameNotes(wishlistId, steamId, notes, userId)` — update notes field (planned)
+  - `removeGameFromWishlist(wishlistId, steamId, userId)` — delete by composite key (implemented)
+  - `moveGameToWishlist(sourceWishlistId, targetWishlistId, steamId, userId)` — move between wishlists (planned)
 - [x] Game controller (`controllers/game.controller.ts`) — Express handlers
 - [x] Game routes (`routes/game.routes.ts`) — mounted at `/api`
   - `GET /api/wishlists/:wishlistId/games` — list games in wishlist
   - `POST /api/wishlists/:wishlistId/games` — add game by Steam AppID
-  - `GET /api/games/:gameId` — game detail (gameId format: `steamId+wishlistId`)
-  - `PUT /api/games/:gameId` — update game notes
-  - `DELETE /api/games/:gameId` — remove from wishlist
-  - `PUT /api/games/:gameId/move` — move game to another wishlist
+  - `DELETE /api/games/:gameId` — remove from wishlist (gameId format: `steamId+wishlistId`, implemented)
+  - `GET /api/games/:gameId` — game detail (planned)
+  - `PUT /api/games/:gameId` — update game notes (planned)
+  - `PUT /api/games/:gameId/move` — move game to another wishlist (planned)
 
 **Composite Key Routing:**
 - GameId encoding format: `steamId+wishlistId` (e.g., `1234567+abc-uuid`)
@@ -472,6 +472,7 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Wishlists management page (CRUD UI) — grid of cards with create modal and kebab menus
 - [x] Wishlist games page (table view) — sortable columns with on-sale filter
 - [x] Add game flow (AppID/URL input via AddGameDialog modal)
+- [x] Remove game from wishlist with confirmation dialog and toast notifications
 - [ ] Move game between wishlists UI
 
 #### Architecture Pattern
@@ -541,6 +542,7 @@ Backend follows a consistent layering pattern:
   - **Filter**: "Show only on sale" checkbox
   - **Sortable table columns**: Game (name), Price, Discount, Added — click to toggle asc/desc sort with visual indicators
   - **Table rows**: Game image thumbnail, name, price, discount badge, date added; clickable → opens Steam Store page in new tab
+  - **Actions column**: External links (Steam Store, SteamDB) + TrashIcon delete button
   - **Empty states**: Contextual messages for "no games yet" vs "no games match filter" with CTA buttons
 
 #### Router Configuration
@@ -559,3 +561,12 @@ Backend follows a consistent layering pattern:
   - On success: closes dialog, clears input, shows toast notification
   - On error: displays error toast (invalid input, game not found, duplicate, etc.)
 - Replaced separate AddGamePage route with inline modal for simpler UX
+
+#### RemoveGameDialog Implementation
+- Confirmation dialog component in [`RemoveGameDialog.tsx`](frontend/src/features/wishlists/RemoveGameDialog.tsx:27) integrated into WishlistGamesPage:
+  - Triggered by TrashIcon button in each row's Actions column
+  - Shows game name in confirmation text with destructive styling (red TrashIcon, destructive button variant)
+  - Calls `useDeleteGameMutation` from [`wishlistApi.ts`](frontend/src/app/services/wishlistApi.ts:137) with `{ gameId, wishlistId }`
+  - Mutation invalidates `{ type: 'Wishlist', id: wishlistId }` (refreshes table) and `'Wishlist'` (refreshes sidebar game counts)
+  - On success: closes dialog, shows success toast with game name
+  - On error: displays error toast prompting retry

@@ -132,6 +132,20 @@ export const wishlistApi = api.injectEndpoints({
         'Game',
       ],
     }),
+
+    /**
+     * Remove a game from a wishlist
+     */
+    deleteGame: builder.mutation<{ success: boolean }, { gameId: string; wishlistId: string }>({
+      query: ({ gameId }) => ({
+        url: `/games/${gameId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { wishlistId }) => [
+        { type: 'Wishlist' as const, id: wishlistId },
+        'Wishlist',
+      ],
+    }),
   }),
 });
 
@@ -145,4 +159,5 @@ export const {
   useGetGamesQuery,
   useGetAllGamesQuery,
   usePostGameMutation,
+  useDeleteGameMutation,
 } = wishlistApi;

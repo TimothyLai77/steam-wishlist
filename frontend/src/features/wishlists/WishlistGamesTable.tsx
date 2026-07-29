@@ -14,6 +14,7 @@ import {
     CaretDownIcon,
     DatabaseIcon,
     LinkIcon,
+    TrashIcon,
 } from '@phosphor-icons/react';
 
 export type SortKey = 'name' | 'currentPrice' | 'discountPercent' | 'createdAt';
@@ -25,6 +26,7 @@ interface WishlistGamesTableProps {
     sortDir: SortDir;
     onSort: (key: SortKey) => void;
     formatPrice: (price: number | undefined) => string;
+    onRemoveGame: (gameId: string, gameName: string) => void;
 }
 
 const WishlistGamesTable: React.FC<WishlistGamesTableProps> = ({
@@ -33,6 +35,7 @@ const WishlistGamesTable: React.FC<WishlistGamesTableProps> = ({
     sortDir,
     onSort,
     formatPrice,
+    onRemoveGame,
 }) => {
     const SortIcon = ({ column }: { column: SortKey }) => {
         if (sortKey !== column) {
@@ -148,6 +151,16 @@ const WishlistGamesTable: React.FC<WishlistGamesTableProps> = ({
                                     >
                                         <DatabaseIcon size={14} />
                                     </a>
+                                    <button
+                                        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                                        title="Remove from wishlist"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onRemoveGame(game.id, game.name || `Game ${game.steamId}`);
+                                        }}
+                                    >
+                                        <TrashIcon size={14} />
+                                    </button>
                                 </div>
                             </TableCell>
                         </TableRow>
