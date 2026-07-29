@@ -30,12 +30,13 @@ interface SteamApiResponse {
  */
 
 const STEAM_STORE_BASE_URL = 'https://store.steampowered.com/api/appdetails';
+const STEAM_API_CC = process.env.STEAM_API_CC ?? 'US';
 
 export const fetchGameDetails = async (
   steamId: string,
 ): Promise<SteamGameDetails | null> => {
   try {
-    const url = `${STEAM_STORE_BASE_URL}?appids=${steamId}`;
+    const url = `${STEAM_STORE_BASE_URL}?appids=${steamId}&cc=${STEAM_API_CC}`;
     const response = await fetch(url);
 
     if (!response.ok) {
