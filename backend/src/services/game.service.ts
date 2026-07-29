@@ -148,3 +148,29 @@ export const addGameToWishlist = async (
     };
   }
 };
+
+export const removeGameFromWishlist = async (
+  wishlistId: string,
+  steamId: number,
+  userId: string,
+): Promise<void> => {
+  const wishlist = await prisma.wishlist.findFirst({
+    where: { id: wishlistId, userId },
+  });
+
+  if (!wishlist) {
+    throw new Error('Wishlist not found');
+  }
+
+  const existingGame = await prisma.wishlistGame.findUnique({
+    where: { steamId_wishlistId: { steamId, wishlistId } },
+  });
+
+  if (!existingGame) {
+    throw new Error('Game not found in wishlist');
+  }
+
+  await prisma.wishlistGame.delete({
+    where: { steamId_wishlistId: { steamId, wishlistId } },
+  });
+};
