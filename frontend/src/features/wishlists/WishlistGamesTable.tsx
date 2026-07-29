@@ -118,9 +118,16 @@ const WishlistGamesTable: React.FC<WishlistGamesTableProps> = ({
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <span className={hasDiscount ? 'text-foreground font-medium' : ''}>
-                                    {formatPrice(game.currentPrice)}
-                                </span>
+                                <div className="flex items-center gap-1">
+                                    <span className={hasDiscount ? 'text-foreground font-medium' : ''}>
+                                        {formatPrice(game.currentPrice)}
+                                    </span>
+                                    {game.currency && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {game.currency}
+                                        </span>
+                                    )}
+                                </div>
                             </TableCell>
                             <TableCell>
                                 {hasDiscount ? (
