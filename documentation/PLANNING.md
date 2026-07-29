@@ -340,7 +340,7 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Frontend wishlist games page with table view (sorting, on-sale filter)
 - [x] Add game flow (paste AppID or URL → add via modal dialog)
 - [x] Default wishlist creation on user registration
-- [ ] Move game between wishlists functionality
+- [x] Move game between wishlists functionality
 
 ### Phase 3: Polish & UX
 - [x] Dashboard with summary stats
@@ -440,15 +440,22 @@ VITE_API_URL=http://localhost:4000/api
     - Falls back to "Game {steamId}" if Steam fetch fails
   - `updateGameNotes(wishlistId, steamId, notes, userId)` — update notes field (planned)
   - `removeGameFromWishlist(wishlistId, steamId, userId)` — delete by composite key (implemented)
-  - `moveGameToWishlist(sourceWishlistId, targetWishlistId, steamId, userId)` — move between wishlists (planned)
+  - `moveGameToWishlist(sourceWishlistId, targetWishlistId, steamId, userId)` — move between wishlists (implemented)
+    - Uses Prisma `$transaction` for atomicity
+    - Verifies user owns both source and target wishlists
+    - If game already in target: deletes from source only (avoids unique constraint violation)
+    - Otherwise: updates `wishlistId` in-place (preserves cached data/notes)
+    - Returns `{ success: true, moved: boolean }`
 - [x] Game controller (`controllers/game.controller.ts`) — Express handlers
 - [x] Game routes (`routes/game.routes.ts`) — mounted at `/api`
   - `GET /api/wishlists/:wishlistId/games` — list games in wishlist
   - `POST /api/wishlists/:wishlistId/games` — add game by Steam AppID
   - `DELETE /api/games/:gameId` — remove from wishlist (gameId format: `steamId+wishlistId`, implemented)
+  - `POST /api/games/:gameId/move` — move game to another wishlist (gameId format: `steamId+wishlistId`, implemented)
+    - Body: `{ "targetWishlistId": "string" }`
+    - Response: `{ "success": true, "moved": true/false }`
   - `GET /api/games/:gameId` — game detail (planned)
   - `PUT /api/games/:gameId` — update game notes (planned)
-  - `PUT /api/games/:gameId/move` — move game to another wishlist (planned)
 
 **Composite Key Routing:**
 - GameId encoding format: `steamId+wishlistId` (e.g., `1234567+abc-uuid`)
@@ -473,7 +480,7 @@ VITE_API_URL=http://localhost:4000/api
 - [x] Wishlist games page (table view) — sortable columns with on-sale filter
 - [x] Add game flow (AppID/URL input via AddGameDialog modal)
 - [x] Remove game from wishlist with confirmation dialog and toast notifications
-- [ ] Move game between wishlists UI
+- [x] Move game between wishlists UI (MoveGameDialog + table action button)
 
 #### Architecture Pattern
 Backend follows a consistent layering pattern:
@@ -495,7 +502,8 @@ Backend follows a consistent layering pattern:
 - ES module imports require explicit `.js` extensions on relative paths
 
 #### Next Steps
-- Implement move game between wishlists functionality
+- Implement user notes on games
+- Implement responsive design improvements
 
 #### React Hooks Fix (DashboardPage)
 - DashboardPage originally called `useGetGamesQuery(id)` inside `.map()` over dynamic wishlist IDs, violating the Rules of Hooks (hook count changed between renders as wishlists loaded).
@@ -542,7 +550,7 @@ Backend follows a consistent layering pattern:
   - **Filter**: "Show only on sale" checkbox
   - **Sortable table columns**: Game (name), Price, Discount, Added — click to toggle asc/desc sort with visual indicators
   - **Table rows**: Game image thumbnail, name, price, discount badge, date added; clickable → opens Steam Store page in new tab
-  - **Actions column**: External links (Steam Store, SteamDB) + TrashIcon delete button
+  - **Actions column**: External links (Steam Store, SteamDB) + Move button (`ListPlusIcon`) + TrashIcon delete button
   - **Empty states**: Contextual messages for "no games yet" vs "no games match filter" with CTA buttons
 
 #### Router Configuration
@@ -570,3 +578,13 @@ Backend follows a consistent layering pattern:
   - Mutation invalidates `{ type: 'Wishlist', id: wishlistId }` (refreshes table) and `'Wishlist'` (refreshes sidebar game counts)
   - On success: closes dialog, shows success toast with game name
   - On error: displays error toast prompting retry
+
+#### MoveGameDialog Implementation
+- Confirmation dialog component in [`MoveGameDialog.tsx`](frontend/src/features/wishlists/MoveGameDialog.tsx:27) integrated into WishlistGamesPage:
+  - Triggered by `ListPlusIcon` button in each row's Actions column (only shown when user has more than 1 wishlist)
+  - Dropdown (`<select>`) populated with user's wishlists excluding the current one, via `useGetWishlistsQuery`
+  - Calls `useMoveGameMutation` from [`wishlistApi.ts`](frontend/src/app/services/wishlistApi.ts:151) with `{ gameId, targetWishlistId }`
+  - Mutation invalidates both source and target wishlist tags plus global `'Wishlist'` and `'Game'` tags (refreshes table and sidebar counts)
+  - On success (`moved: true`): closes dialog, shows "Game moved" toast
+  - On success (`moved: false`, game existed in target): closes dialog, shows "Game already exists, removed from current" toast
+  - On error: displays error toast with backend message
