@@ -146,6 +146,29 @@ export const wishlistApi = api.injectEndpoints({
         'Wishlist',
       ],
     }),
+
+    /**
+     * Move a game to a different wishlist
+     */
+    moveGame: builder.mutation<
+      { success: boolean; moved: boolean },
+      { gameId: string; targetWishlistId: string }
+    >({
+      query: ({ gameId, targetWishlistId }) => ({
+        url: `/games/${gameId}/move`,
+        method: 'POST',
+        body: { targetWishlistId },
+      }),
+      invalidatesTags: (_result, _error, { gameId, targetWishlistId }) => {
+        const sourceWishlistId = gameId.split('+')[1];
+        return [
+          { type: 'Wishlist' as const, id: sourceWishlistId },
+          { type: 'Wishlist' as const, id: targetWishlistId },
+          'Wishlist',
+          'Game',
+        ];
+      },
+    }),
   }),
 });
 
@@ -160,4 +183,5 @@ export const {
   useGetAllGamesQuery,
   usePostGameMutation,
   useDeleteGameMutation,
+  useMoveGameMutation,
 } = wishlistApi;

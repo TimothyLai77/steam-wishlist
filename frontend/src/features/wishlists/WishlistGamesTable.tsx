@@ -15,6 +15,7 @@ import {
     DatabaseIcon,
     LinkIcon,
     TrashIcon,
+    ListPlusIcon,
 } from '@phosphor-icons/react';
 
 export type SortKey = 'name' | 'currentPrice' | 'discountPercent' | 'createdAt';
@@ -27,6 +28,8 @@ interface WishlistGamesTableProps {
     onSort: (key: SortKey) => void;
     formatPrice: (price: number | undefined) => string;
     onRemoveGame: (gameId: string, gameName: string) => void;
+    onMoveGame: (gameId: string, gameName: string) => void;
+    showMoveButton: boolean;
 }
 
 const WishlistGamesTable: React.FC<WishlistGamesTableProps> = ({
@@ -36,6 +39,8 @@ const WishlistGamesTable: React.FC<WishlistGamesTableProps> = ({
     onSort,
     formatPrice,
     onRemoveGame,
+    onMoveGame,
+    showMoveButton,
 }) => {
     const SortIcon = ({ column }: { column: SortKey }) => {
         if (sortKey !== column) {
@@ -151,6 +156,18 @@ const WishlistGamesTable: React.FC<WishlistGamesTableProps> = ({
                                     >
                                         <DatabaseIcon size={14} />
                                     </a>
+                                    {showMoveButton && (
+                                        <button
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+                                            title="Move to another wishlist"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onMoveGame(game.id, game.name || `Game ${game.steamId}`);
+                                            }}
+                                        >
+                                            <ListPlusIcon size={14} />
+                                        </button>
+                                    )}
                                     <button
                                         className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
                                         title="Remove from wishlist"

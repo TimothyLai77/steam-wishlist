@@ -6,6 +6,7 @@ import {
 } from '../../app/services/wishlistApi';
 import { AddGameDialog } from './AddGameDialog';
 import { RemoveGameDialog } from './RemoveGameDialog';
+import { MoveGameDialog } from './MoveGameDialog';
 import { Button } from '../../../components/ui/button';
 import {
     Card,
@@ -33,6 +34,7 @@ const WishlistGamesPage = () => {
     const [filterOnSale, setFilterOnSale] = useState(false);
 
     const [removingGame, setRemovingGame] = useState<{ id: string; name: string } | null>(null);
+    const [movingGame, setMovingGame] = useState<{ id: string; name: string } | null>(null);
 
     const wishlist = wishlists?.find((w) => w.id === wishlistId);
 
@@ -72,6 +74,10 @@ const WishlistGamesPage = () => {
 
     const handleRemoveGame = (gameId: string, gameName: string) => {
         setRemovingGame({ id: gameId, name: gameName });
+    };
+
+    const handleMoveGame = (gameId: string, gameName: string) => {
+        setMovingGame({ id: gameId, name: gameName });
     };
 
     const formatPrice = (price: number | undefined) => {
@@ -174,6 +180,8 @@ const WishlistGamesPage = () => {
                         onSort={handleSort}
                         formatPrice={formatPrice}
                         onRemoveGame={handleRemoveGame}
+                        onMoveGame={handleMoveGame}
+                        showMoveButton={(wishlists?.length ?? 0) > 1}
                     />
                 </Card>
             )}
@@ -187,6 +195,20 @@ const WishlistGamesPage = () => {
                     onOpenChange={(open) => {
                         if (!open) {
                             setRemovingGame(null);
+                        }
+                    }}
+                />
+            )}
+
+            {movingGame && wishlistId && (
+                <MoveGameDialog
+                    gameId={movingGame.id}
+                    gameName={movingGame.name}
+                    sourceWishlistId={wishlistId}
+                    open={!!movingGame}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setMovingGame(null);
                         }
                     }}
                 />
