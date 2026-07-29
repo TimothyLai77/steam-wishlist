@@ -183,7 +183,7 @@ const AppLayout = () => {
 
   // Desktop: Collapsible sidebar
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <aside
         className={`flex h-screen flex-col border-r bg-background transition-all duration-200 ${collapsed ? 'w-[64px]' : 'w-[260px]'
@@ -193,7 +193,7 @@ const AppLayout = () => {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1">
+      <main className="flex-1 overflow-auto">
         <Outlet />
       </main>
     </div>
