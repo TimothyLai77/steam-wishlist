@@ -30,6 +30,7 @@ export interface GameSummary {
   image?: string;
   currentPrice?: number;
   discountPercent?: number;
+  currency?: string;
   notes?: string;
   createdAt: string;
 }

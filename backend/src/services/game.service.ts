@@ -9,6 +9,7 @@ export interface GameSummary {
   image: string | null;
   currentPrice: number | null;
   discountPercent: number | null;
+  currency: string | null;
   notes: string | null;
   createdAt: Date;
 }
@@ -40,6 +41,7 @@ export const getGamesByWishlistId = async (
       imageUrl: true,
       currentPrice: true,
       discountPercent: true,
+      currency: true,
       notes: true,
       addedAt: true,
     },
@@ -53,6 +55,7 @@ export const getGamesByWishlistId = async (
     image: game.imageUrl,
     currentPrice: game.currentPrice?.toNumber() ?? null,
     discountPercent: game.discountPercent ?? null,
+    currency: game.currency || null,
     notes: game.notes,
     createdAt: game.addedAt,
   }));
@@ -85,6 +88,7 @@ export const addGameToWishlist = async (
         image: existingGame.imageUrl,
         currentPrice: existingGame.currentPrice?.toNumber() ?? null,
         discountPercent: existingGame.discountPercent ?? null,
+        currency: existingGame.currency || null,
         notes: existingGame.notes,
         createdAt: existingGame.addedAt,
       },
@@ -118,6 +122,7 @@ export const addGameToWishlist = async (
         image: game.imageUrl,
         currentPrice: game.currentPrice?.toNumber() ?? null,
         discountPercent: game.discountPercent ?? null,
+        currency: game.currency || null,
         notes: game.notes,
         createdAt: game.addedAt,
       },
@@ -141,6 +146,7 @@ export const addGameToWishlist = async (
         image: null,
         currentPrice: null,
         discountPercent: null,
+        currency: null,
         notes: null,
         createdAt: game.addedAt,
       },
