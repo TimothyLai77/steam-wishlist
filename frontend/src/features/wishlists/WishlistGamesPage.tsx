@@ -5,6 +5,7 @@ import {
     useGetWishlistsQuery,
 } from '../../app/services/wishlistApi';
 import { AddGameDialog } from './AddGameDialog';
+import { RemoveGameDialog } from './RemoveGameDialog';
 import { Button } from '../../../components/ui/button';
 import {
     Card,
@@ -30,6 +31,8 @@ const WishlistGamesPage = () => {
     const [sortKey, setSortKey] = useState<SortKey>('createdAt');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
     const [filterOnSale, setFilterOnSale] = useState(false);
+
+    const [removingGame, setRemovingGame] = useState<{ id: string; name: string } | null>(null);
 
     const wishlist = wishlists?.find((w) => w.id === wishlistId);
 
@@ -67,6 +70,9 @@ const WishlistGamesPage = () => {
         }
     };
 
+    const handleRemoveGame = (gameId: string, gameName: string) => {
+        setRemovingGame({ id: gameId, name: gameName });
+    };
 
     const formatPrice = (price: number | undefined) => {
         if (price == null) return '—';
@@ -167,8 +173,23 @@ const WishlistGamesPage = () => {
                         sortDir={sortDir}
                         onSort={handleSort}
                         formatPrice={formatPrice}
+                        onRemoveGame={handleRemoveGame}
                     />
                 </Card>
+            )}
+
+            {removingGame && wishlistId && (
+                <RemoveGameDialog
+                    gameName={removingGame.name}
+                    gameId={removingGame.id}
+                    wishlistId={wishlistId}
+                    open={!!removingGame}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setRemovingGame(null);
+                        }
+                    }}
+                />
             )}
         </div>
     );
