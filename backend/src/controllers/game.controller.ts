@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { getGamesByWishlistId, addGameToWishlist, removeGameFromWishlist, moveGameToWishlist } from '../services/game.service.js';
+import { getGamesByWishlistId, addGameToWishlist, removeGameFromWishlist, moveGameToWishlist, refreshGamesInWishlist } from '../services/game.service.js';
 
 export const getGamesHandler = async (req: Request, res: Response) => {
   try {
@@ -128,6 +128,28 @@ export const moveGameHandler = async (req: Request, res: Response) => {
       }
       if (error.message === 'Source and target wishlists are the same') {
         return res.status(400).json({ message: error.message });
+      }
+      return res.status(500).json({ message: 'Server error', error: error.message });
+    }
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const refreshGamesHandler = async (req: Request, res: Response) => {
+  try {
+    const wishlistId = req.params.wishlistId as string;
+    const userId = req.user!.userId;
+
+    if (!wishlistId) {
+      return res.status(400).json({ message: 'Invalid wishlist ID' });
+    }
+
+    const result = await refreshGamesInWishlist(wishlistId, userId);
+    res.json(result);
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'Wishlist not found') {
+        return res.status(404).json({ message: error.message });
       }
       return res.status(500).json({ message: 'Server error', error: error.message });
     }

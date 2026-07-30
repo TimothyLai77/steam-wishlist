@@ -8,6 +8,7 @@ import { errorHandler } from "./middleware/error.middleware.js";
 import authRoutes from "./routes/auth.routes.js";
 import wishlistRoutes from "./routes/wishlist.routes.js";
 import gameRoutes from "./routes/game.routes.js";
+import { startPriceRefreshJob } from "./services/price-refresh-job.js";
 
 // Load .env from project root (../ relative to backend/src/)
 dotenv.config({ path: "../.env" });
@@ -79,6 +80,9 @@ app.listen(PORT, () => {
   if (isProduction) {
     console.log("Serving frontend in production mode");
   }
+
+  // Start scheduled price refresh job
+  startPriceRefreshJob();
 });
 
 export default app;
