@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
 import {
     DropdownMenu,
@@ -41,15 +40,9 @@ export const WishlistCard = ({
             <DropdownMenu>
                 <DropdownMenuTrigger
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center rounded-md h-8 w-8 text-muted-foreground hover:bg-accent hover:text-accent-foreground outline-none"
                 >
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground"
-                    >
-                        <DotsThreeVerticalIcon size={18} weight="bold" />
-                    </Button>
+                    <DotsThreeVerticalIcon size={18} weight="bold" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => onRename(id, name)}>
