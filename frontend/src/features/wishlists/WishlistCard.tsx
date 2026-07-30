@@ -45,12 +45,12 @@ export const WishlistCard = ({
                     <DotsThreeVerticalIcon size={18} weight="bold" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onRename(id, name)}>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(id, name); }}>
                         <PencilSimpleIcon size={16} className="mr-2" />
                         Rename
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                        onClick={() => onDelete(id, name)}
+                        onClick={(e) => { e.stopPropagation(); onDelete(id, name); }}
                         className="text-destructive focus:text-destructive"
                         disabled={deleting}
                     >
