@@ -60,13 +60,13 @@ app.get("/db", async (_req, res) => {
 if (isProduction) {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-  const frontendDist = path.resolve(__dirname, "../../frontend/dist");
+  const frontendDist = path.resolve(__dirname, "../frontend/dist");
 
   // Serve static files
   app.use(express.static(frontendDist));
 
   // SPA fallback: serve index.html for all non-API routes
-  app.get("*", (_req, res) => {
+  app.get(/(.*)/, (_req, res) => {
     res.sendFile(path.join(frontendDist, "index.html"));
   });
 }
