@@ -3,6 +3,9 @@
 *.db
 .env
 .vscode/
+data/
+frontend/dist/
+backend/dist/
 # MacOS
 .DS_Store
 # Logs
