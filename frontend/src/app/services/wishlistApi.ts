@@ -87,7 +87,7 @@ export const wishlistApi = api.injectEndpoints({
         method: 'PUT',
         body: payload,
       }),
-      invalidatesTags: (_result, _error, { id }) => [{ type: 'Wishlist' as const, id }],
+      invalidatesTags: ['Wishlist'],
     }),
 
     /**
