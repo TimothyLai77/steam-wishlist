@@ -3,20 +3,23 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     useGetGamesQuery,
     useGetWishlistsQuery,
+    useDeleteGameMutation,
 } from '../../app/services/wishlistApi';
 import { AddGameDialog } from './AddGameDialog';
-import { RemoveGameDialog } from './RemoveGameDialog';
 import { MoveGameDialog } from './MoveGameDialog';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Button } from '../../../components/ui/button';
 import {
     Card,
     CardContent,
 } from '../../../components/ui/card';
+import { toast } from '../../../components/ui/toast';
 import {
     PlusIcon,
     ListIcon,
     ArrowLeftIcon,
     ArrowClockwiseIcon,
+    TrashIcon,
 } from '@phosphor-icons/react';
 import WishlistGamesTable, {
     type SortKey,
@@ -35,6 +38,7 @@ const WishlistGamesPage = () => {
 
     const [removingGame, setRemovingGame] = useState<{ id: string; name: string } | null>(null);
     const [movingGame, setMovingGame] = useState<{ id: string; name: string } | null>(null);
+    const [deleteGame, { isLoading: deleting }] = useDeleteGameMutation();
 
     const wishlist = wishlists?.find((w) => w.id === wishlistId);
 
@@ -74,6 +78,25 @@ const WishlistGamesPage = () => {
 
     const handleRemoveGame = (gameId: string, gameName: string) => {
         setRemovingGame({ id: gameId, name: gameName });
+    };
+
+    const confirmDeleteGame = async () => {
+        if (!removingGame || !wishlistId) return;
+        try {
+            await deleteGame({ gameId: removingGame.id, wishlistId }).unwrap();
+            setRemovingGame(null);
+            toast.add({
+                title: 'Game removed',
+                description: `${removingGame.name} was removed from your wishlist.`,
+                type: 'success',
+            });
+        } catch {
+            toast.add({
+                title: 'Failed to remove game',
+                description: 'Could not remove the game from your wishlist. Please try again.',
+                type: 'destructive',
+            });
+        }
     };
 
     const handleMoveGame = (gameId: string, gameName: string) => {
@@ -187,16 +210,28 @@ const WishlistGamesPage = () => {
             )}
 
             {removingGame && wishlistId && (
-                <RemoveGameDialog
-                    gameName={removingGame.name}
-                    gameId={removingGame.id}
-                    wishlistId={wishlistId}
+                <ConfirmDialog
                     open={!!removingGame}
                     onOpenChange={(open) => {
                         if (!open) {
                             setRemovingGame(null);
                         }
                     }}
+                    title={
+                        <div className="flex items-center gap-2">
+                            <TrashIcon size={20} weight="bold" className="text-red-500" />
+                            Remove Game
+                        </div>
+                    }
+                    description={
+                        <>
+                            Are you sure you want to remove <strong>{removingGame.name}</strong> from your wishlist? This cannot be undone.
+                        </>
+                    }
+                    confirmLabel="Remove"
+                    confirmVariant="destructive"
+                    onConfirm={confirmDeleteGame}
+                    isLoading={deleting}
                 />
             )}
 

@@ -16,9 +16,10 @@ import {
 } from '../../../components/ui/dialog';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
-import { PlusIcon, ListIcon } from '@phosphor-icons/react';
+import { PlusIcon, ListIcon, TrashIcon } from '@phosphor-icons/react';
 import { toast } from '../../../components/ui/toast';
 import { WishlistCard } from './WishlistCard';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 const WishlistsPage = () => {
   const { data: wishlists = [], isLoading } = useGetWishlistsQuery();
@@ -34,6 +35,11 @@ const WishlistsPage = () => {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameName, setRenameName] = useState('');
+
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteName, setDeleteName] = useState('');
 
   const handleCreate = async () => {
     if (!createName.trim()) return;
@@ -88,13 +94,22 @@ const WishlistsPage = () => {
     if (e.key === 'Enter') handleRename();
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"? All games in this wishlist will be permanently removed.`)) return;
+  const openDeleteDialog = (id: string, name: string) => {
+    setDeleteId(id);
+    setDeleteName(name);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await deleteWishlist(id).unwrap();
+      await deleteWishlist(deleteId).unwrap();
+      setDeleteDialogOpen(false);
+      setDeleteId(null);
+      setDeleteName('');
       toast.add({
         title: 'Wishlist deleted',
-        description: `"${name}" and its games have been removed.`,
+        description: `"${deleteName}" and its games have been removed.`,
         type: 'success',
       });
     } catch {
@@ -149,7 +164,7 @@ const WishlistsPage = () => {
               name={wishlist.name}
               gameCount={wishlist.gameCount}
               onRename={openRenameDialog}
-              onDelete={handleDelete}
+              onDelete={openDeleteDialog}
               deleting={deleting}
             />
           ))}
@@ -220,6 +235,27 @@ const WishlistsPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title={
+          <div className="flex items-center gap-2">
+            <TrashIcon size={20} weight="bold" className="text-red-500" />
+            Delete Wishlist
+          </div>
+        }
+        description={
+          <>
+            Are you sure you want to delete <strong>{deleteName}</strong>? All games in this wishlist will be permanently removed. This cannot be undone.
+          </>
+        }
+        confirmLabel="Delete"
+        confirmVariant="destructive"
+        onConfirm={confirmDelete}
+        isLoading={deleting}
+      />
     </div>
   );
 };
