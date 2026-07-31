@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+const baseUrl = '/api';
 
 /**
  * Central RTK Query API instance with shared baseQuery configuration.
