@@ -2,6 +2,7 @@
 *.db.*
 *.db
 .env
+.dev.env
 .vscode/
 data/
 frontend/dist/
