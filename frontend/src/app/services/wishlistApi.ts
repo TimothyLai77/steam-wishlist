@@ -170,6 +170,23 @@ export const wishlistApi = api.injectEndpoints({
         ];
       },
     }),
+
+    /**
+     * Refresh game prices for a wishlist from Steam
+     */
+    refreshGames: builder.mutation<
+      { refreshed: number; failed: number },
+      string
+    >({
+      query: (wishlistId) => ({
+        url: `/wishlists/${wishlistId}/games/refresh`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, wishlistId) => [
+        { type: 'Wishlist' as const, id: wishlistId },
+        'Game',
+      ],
+    }),
   }),
 });
 
@@ -185,4 +202,5 @@ export const {
   usePostGameMutation,
   useDeleteGameMutation,
   useMoveGameMutation,
+  useRefreshGamesMutation,
 } = wishlistApi;

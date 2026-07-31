@@ -4,6 +4,7 @@ import {
     useGetGamesQuery,
     useGetWishlistsQuery,
     useDeleteGameMutation,
+    useRefreshGamesMutation,
 } from '../../app/services/wishlistApi';
 import { AddGameDialog } from './AddGameDialog';
 import { MoveGameDialog } from './MoveGameDialog';
@@ -39,6 +40,7 @@ const WishlistGamesPage = () => {
     const [removingGame, setRemovingGame] = useState<{ id: string; name: string } | null>(null);
     const [movingGame, setMovingGame] = useState<{ id: string; name: string } | null>(null);
     const [deleteGame, { isLoading: deleting }] = useDeleteGameMutation();
+    const [refreshGames, { isLoading: refreshing }] = useRefreshGamesMutation();
 
     const wishlist = wishlists?.find((w) => w.id === wishlistId);
 
@@ -99,6 +101,32 @@ const WishlistGamesPage = () => {
         }
     };
 
+    const handleRefresh = async () => {
+        if (!wishlistId) return;
+        try {
+            const result = await refreshGames(wishlistId).unwrap();
+            if (result.failed > 0) {
+                toast.add({
+                    title: 'Refresh completed with warnings',
+                    description: `Refreshed ${result.refreshed} game${result.refreshed !== 1 ? 's' : ''}. ${result.failed} game${result.failed !== 1 ? 's' : ''} could not be updated.`,
+                    type: 'success',
+                });
+            } else {
+                toast.add({
+                    title: 'Refresh completed',
+                    description: `Refreshed ${result.refreshed} game${result.refreshed !== 1 ? 's' : ''}.`,
+                    type: 'success',
+                });
+            }
+        } catch {
+            toast.add({
+                title: 'Refresh failed',
+                description: 'Could not refresh game prices. Please try again.',
+                type: 'destructive',
+            });
+        }
+    };
+
     const handleMoveGame = (gameId: string, gameName: string) => {
         setMovingGame({ id: gameId, name: gameName });
     };
@@ -142,10 +170,11 @@ const WishlistGamesPage = () => {
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => refetch()}
+                        onClick={handleRefresh}
+                        disabled={refreshing}
                     >
-                        <ArrowClockwiseIcon size={16} className="mr-1" />
-                        Refresh
+                        <ArrowClockwiseIcon size={16} className={`mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+                        {refreshing ? 'Refreshing...' : 'Refresh'}
                     </Button>
                     <AddGameDialog wishlistId={wishlistId || ''} triggerNode={
                         <Button size="sm">
