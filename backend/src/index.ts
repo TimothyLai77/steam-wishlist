@@ -1,8 +1,17 @@
-import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+
+// Load env FIRST before any other imports (prisma.ts and jwt.ts depend on env vars)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, "../..");
+const isProduction = process.env.NODE_ENV === "production";
+const envFile = path.join(projectRoot, isProduction ? ".env" : ".dev.env");
+const dotenvResult = dotenv.config({ path: envFile });
+
+import express from "express";
+import cors from "cors";
 import { prisma } from "./config/prisma.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import authRoutes from "./routes/auth.routes.js";
@@ -10,14 +19,9 @@ import wishlistRoutes from "./routes/wishlist.routes.js";
 import gameRoutes from "./routes/game.routes.js";
 import { startPriceRefreshJob } from "./services/price-refresh-job.js";
 
-// Load .env from project root (../ relative to backend/src/)
-dotenv.config({ path: "../.env" });
-
 const app = express();
-const PORT = process.env.PORT ?? 4000;
 
-// Determine if running in production
-const isProduction = process.env.NODE_ENV === "production";
+const PORT = process.env.PORT ?? 4000;
 
 // CORS middleware - allow localhost:5173 for dev, same-origin for prod
 const corsOrigin = isProduction
