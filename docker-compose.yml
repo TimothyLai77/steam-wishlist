@@ -10,7 +10,7 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      - NODE_ENV=production
+      - APP_ENV=production
       - PORT=4000
       - DATABASE_URL=file:/app/data/steam.db
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set}

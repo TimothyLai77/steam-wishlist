@@ -2,13 +2,18 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Load env FIRST before any other imports (prisma.ts and jwt.ts depend on env vars)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
-const isProduction = process.env.NODE_ENV === "production";
-const envFile = path.join(projectRoot, isProduction ? ".env" : ".dev.env");
-const dotenvResult = dotenv.config({ path: envFile });
+
+// Load env ONCE from project root (single source of truth)
+dotenv.config({ path: path.join(projectRoot, ".env") });
+
+// Derive NODE_ENV from APP_ENV so existing code that checks NODE_ENV still works
+const appEnv = process.env.APP_ENV ?? "development";
+process.env.NODE_ENV = appEnv === "production" ? "production" : "development";
+
+const isProduction = appEnv === "production";
 
 import express from "express";
 import cors from "cors";

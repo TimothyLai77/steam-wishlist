@@ -1,9 +1,14 @@
 import { defineConfig } from "prisma/config";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// Try loading from project root (dev) or container root (Docker)
-dotenv.config({ path: "../.env" });
-dotenv.config({ path: "./.env" });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, "..");
+
+// Load env from project root for Prisma CLI operations (migrations, etc.)
+dotenv.config({ path: path.join(projectRoot, ".env") });
 
 export default defineConfig({
   datasource: {
