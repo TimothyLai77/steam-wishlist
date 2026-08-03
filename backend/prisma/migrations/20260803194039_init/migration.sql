@@ -21,21 +21,30 @@ CREATE TABLE "Wishlist" (
 );
 
 -- CreateTable
-CREATE TABLE "WishlistGame" (
-    "steamId" INTEGER NOT NULL,
-    "wishlistId" TEXT NOT NULL,
+CREATE TABLE "Game" (
+    "steam_id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "name" TEXT NOT NULL,
-    "currentPrice" DECIMAL,
-    "originalPrice" DECIMAL,
-    "discountPercent" INTEGER,
+    "current_price" DECIMAL,
+    "original_price" DECIMAL,
+    "discount_percent" INTEGER,
     "currency" TEXT NOT NULL DEFAULT 'USD',
-    "imageUrl" TEXT,
-    "addedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "priceUpdatedAt" DATETIME,
-    "notes" TEXT,
+    "image_url" TEXT,
+    "price_updated_at" DATETIME,
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" DATETIME NOT NULL
+);
 
-    PRIMARY KEY ("steamId", "wishlistId"),
-    CONSTRAINT "WishlistGame_wishlistId_fkey" FOREIGN KEY ("wishlistId") REFERENCES "Wishlist" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+-- CreateTable
+CREATE TABLE "wishlist_games" (
+    "gameId" INTEGER NOT NULL,
+    "wishlistId" TEXT NOT NULL,
+    "added_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "notes" TEXT,
+    "rank" INTEGER NOT NULL DEFAULT 0,
+
+    PRIMARY KEY ("gameId", "wishlistId"),
+    CONSTRAINT "wishlist_games_gameId_fkey" FOREIGN KEY ("gameId") REFERENCES "Game" ("steam_id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "wishlist_games_wishlistId_fkey" FOREIGN KEY ("wishlistId") REFERENCES "Wishlist" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateIndex
