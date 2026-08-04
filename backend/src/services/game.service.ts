@@ -31,33 +31,25 @@ export const getGamesByWishlistId = async (
     throw new Error('Wishlist not found');
   }
 
-  const games = await prisma.wishlistGame.findMany({
+  const wishlistGames = await prisma.wishlistGame.findMany({
     where: { wishlistId },
-    orderBy: { addedAt: 'desc' },
-    select: {
-      steamId: true,
-      wishlistId: true,
-      name: true,
-      imageUrl: true,
-      currentPrice: true,
-      discountPercent: true,
-      currency: true,
-      notes: true,
-      addedAt: true,
+    include: {
+      game: true,
     },
+    orderBy: { addedAt: 'desc' },
   });
 
-  return games.map((game) => ({
-    id: `${game.steamId}+${game.wishlistId}`,
-    steamId: String(game.steamId),
-    wishlistId: game.wishlistId,
-    name: game.name,
-    image: game.imageUrl,
-    currentPrice: game.currentPrice?.toNumber() ?? null,
-    discountPercent: game.discountPercent ?? null,
-    currency: game.currency || null,
-    notes: game.notes,
-    createdAt: game.addedAt,
+  return wishlistGames.map((wg) => ({
+    id: `${wg.game.steamId}+${wg.wishlistId}`,
+    steamId: String(wg.game.steamId),
+    wishlistId: wg.wishlistId,
+    name: wg.game.name,
+    image: wg.game.imageUrl,
+    currentPrice: wg.game.currentPrice?.toNumber() ?? null,
+    discountPercent: wg.game.discountPercent ?? null,
+    currency: wg.game.currency || null,
+    notes: wg.notes,
+    createdAt: wg.addedAt,
   }));
 };
 
@@ -75,20 +67,21 @@ export const addGameToWishlist = async (
   }
 
   const existingGame = await prisma.wishlistGame.findUnique({
-    where: { steamId_wishlistId: { steamId, wishlistId } },
+    where: { gameId_wishlistId: { gameId: steamId, wishlistId } },
+    include: { game: true },
   });
 
   if (existingGame) {
     return {
       game: {
-        id: `${existingGame.steamId}+${existingGame.wishlistId}`,
-        steamId: String(existingGame.steamId),
+        id: `${existingGame.gameId}+${existingGame.wishlistId}`,
+        steamId: String(existingGame.gameId),
         wishlistId: existingGame.wishlistId,
-        name: existingGame.name,
-        image: existingGame.imageUrl,
-        currentPrice: existingGame.currentPrice?.toNumber() ?? null,
-        discountPercent: existingGame.discountPercent ?? null,
-        currency: existingGame.currency || null,
+        name: existingGame.game.name,
+        image: existingGame.game.imageUrl,
+        currentPrice: existingGame.game.currentPrice?.toNumber() ?? null,
+        discountPercent: existingGame.game.discountPercent ?? null,
+        currency: existingGame.game.currency || null,
         notes: existingGame.notes,
         createdAt: existingGame.addedAt,
       },
@@ -98,11 +91,22 @@ export const addGameToWishlist = async (
 
   const steamData = await fetchGameDetails(String(steamId));
 
+  let game;
+
   if (steamData) {
-    const game = await prisma.wishlistGame.create({
-      data: {
+    game = await prisma.game.upsert({
+      where: { steamId },
+      update: {
+        name: steamData.name,
+        currentPrice: steamData.currentPrice,
+        originalPrice: steamData.originalPrice,
+        discountPercent: steamData.discountPercent,
+        currency: steamData.currency,
+        imageUrl: steamData.imageUrl,
+        priceUpdatedAt: new Date(),
+      },
+      create: {
         steamId,
-        wishlistId,
         name: steamData.name,
         currentPrice: steamData.currentPrice,
         originalPrice: steamData.originalPrice,
@@ -113,42 +117,57 @@ export const addGameToWishlist = async (
       },
     });
 
-    return {
-      game: {
-        id: `${game.steamId}+${game.wishlistId}`,
-        steamId: String(game.steamId),
-        wishlistId: game.wishlistId,
-        name: game.name,
-        image: game.imageUrl,
-        currentPrice: game.currentPrice?.toNumber() ?? null,
-        discountPercent: game.discountPercent ?? null,
-        currency: game.currency || null,
-        notes: game.notes,
-        createdAt: game.addedAt,
-      },
-      wasFetched: true,
-    };
-  } else {
-    const game = await prisma.wishlistGame.create({
+    const wg = await prisma.wishlistGame.create({
       data: {
-        steamId,
+        gameId: steamId,
         wishlistId,
-        name: `Game ${steamId}`,
       },
     });
 
     return {
       game: {
-        id: `${game.steamId}+${game.wishlistId}`,
-        steamId: String(game.steamId),
-        wishlistId: game.wishlistId,
+        id: `${wg.gameId}+${wg.wishlistId}`,
+        steamId: String(wg.gameId),
+        wishlistId: wg.wishlistId,
+        name: game.name,
+        image: game.imageUrl,
+        currentPrice: game.currentPrice?.toNumber() ?? null,
+        discountPercent: game.discountPercent ?? null,
+        currency: game.currency || null,
+        notes: wg.notes,
+        createdAt: wg.addedAt,
+      },
+      wasFetched: true,
+    };
+  } else {
+    game = await prisma.game.upsert({
+      where: { steamId },
+      update: {},
+      create: {
+        steamId,
+        name: `Game ${steamId}`,
+      },
+    });
+
+    const wg = await prisma.wishlistGame.create({
+      data: {
+        gameId: steamId,
+        wishlistId,
+      },
+    });
+
+    return {
+      game: {
+        id: `${wg.gameId}+${wg.wishlistId}`,
+        steamId: String(wg.gameId),
+        wishlistId: wg.wishlistId,
         name: game.name,
         image: null,
         currentPrice: null,
         discountPercent: null,
         currency: null,
         notes: null,
-        createdAt: game.addedAt,
+        createdAt: wg.addedAt,
       },
       wasFetched: false,
     };
@@ -169,7 +188,7 @@ export const removeGameFromWishlist = async (
   }
 
   const existingGame = await prisma.wishlistGame.findUnique({
-    where: { steamId_wishlistId: { steamId, wishlistId } },
+    where: { gameId_wishlistId: { gameId: steamId, wishlistId } },
   });
 
   if (!existingGame) {
@@ -177,7 +196,7 @@ export const removeGameFromWishlist = async (
   }
 
   await prisma.wishlistGame.delete({
-    where: { steamId_wishlistId: { steamId, wishlistId } },
+    where: { gameId_wishlistId: { gameId: steamId, wishlistId } },
   });
 };
 
@@ -212,26 +231,34 @@ export const moveGameToWishlist = async (
     }
 
     const sourceGame = await tx.wishlistGame.findUnique({
-      where: { steamId_wishlistId: { steamId, wishlistId: sourceWishlistId } },
+      where: { gameId_wishlistId: { gameId: steamId, wishlistId: sourceWishlistId } },
     });
     if (!sourceGame) {
       throw new Error('Game not found in source wishlist');
     }
 
     const existingInTarget = await tx.wishlistGame.findUnique({
-      where: { steamId_wishlistId: { steamId, wishlistId: targetWishlistId } },
+      where: { gameId_wishlistId: { gameId: steamId, wishlistId: targetWishlistId } },
     });
 
     if (existingInTarget) {
       await tx.wishlistGame.delete({
-        where: { steamId_wishlistId: { steamId, wishlistId: sourceWishlistId } },
+        where: { gameId_wishlistId: { gameId: steamId, wishlistId: sourceWishlistId } },
       });
       return { success: true, moved: false };
     }
 
-    await tx.wishlistGame.update({
-      where: { steamId_wishlistId: { steamId, wishlistId: sourceWishlistId } },
-      data: { wishlistId: targetWishlistId },
+    await tx.wishlistGame.delete({
+      where: { gameId_wishlistId: { gameId: steamId, wishlistId: sourceWishlistId } },
+    });
+
+    await tx.wishlistGame.create({
+      data: {
+        gameId: steamId,
+        wishlistId: targetWishlistId,
+        notes: sourceGame.notes,
+        rank: sourceGame.rank,
+      },
     });
 
     return { success: true, moved: true };
@@ -255,8 +282,106 @@ export const refreshGamesInWishlist = async (
     throw new Error('Wishlist not found');
   }
 
-  const games = await prisma.wishlistGame.findMany({
+  const wishlistGames = await prisma.wishlistGame.findMany({
     where: { wishlistId },
+    select: { gameId: true },
+  });
+
+  if (wishlistGames.length === 0) {
+    return { refreshed: 0, failed: 0 };
+  }
+
+  const uniqueGameIds = [...new Set(wishlistGames.map((wg) => wg.gameId))];
+  const steamIds = uniqueGameIds.map((id) => String(id));
+  const steamData = await fetchGameDetailsBatch(steamIds);
+
+  let refreshed = 0;
+  let failed = 0;
+
+  for (const gameId of uniqueGameIds) {
+    const id = String(gameId);
+    const data = steamData[id];
+
+    if (data) {
+      await prisma.game.update({
+        where: { steamId: gameId },
+        data: {
+          name: data.name,
+          currentPrice: data.currentPrice,
+          originalPrice: data.originalPrice,
+          discountPercent: data.discountPercent,
+          currency: data.currency,
+          imageUrl: data.imageUrl,
+          priceUpdatedAt: new Date(),
+        },
+      });
+      refreshed++;
+    } else {
+      failed++;
+    }
+  }
+
+  return { refreshed, failed };
+};
+
+export const refreshAllUserGames = async (
+  userId: string,
+): Promise<RefreshGamesResult> => {
+  const wishlistGames = await prisma.wishlistGame.findMany({
+    where: {
+      wishlist: { userId },
+    },
+    select: { gameId: true },
+  });
+
+  const uniqueGameIds = [...new Set(wishlistGames.map((wg) => wg.gameId))];
+
+  if (uniqueGameIds.length === 0) {
+    return { refreshed: 0, failed: 0 };
+  }
+
+  const steamIds = uniqueGameIds.map((id) => String(id));
+  const steamData = await fetchGameDetailsBatch(steamIds);
+
+  let refreshed = 0;
+  let failed = 0;
+
+  for (const gameId of uniqueGameIds) {
+    const id = String(gameId);
+    const data = steamData[id];
+
+    if (data) {
+      await prisma.game.update({
+        where: { steamId: gameId },
+        data: {
+          name: data.name,
+          currentPrice: data.currentPrice,
+          originalPrice: data.originalPrice,
+          discountPercent: data.discountPercent,
+          currency: data.currency,
+          imageUrl: data.imageUrl,
+          priceUpdatedAt: new Date(),
+        },
+      });
+      refreshed++;
+    } else {
+      failed++;
+    }
+  }
+
+  return { refreshed, failed };
+};
+
+export const refreshAllGames = async (): Promise<RefreshGamesResult> => {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+  const games = await prisma.game.findMany({
+    where: {
+      OR: [
+        { priceUpdatedAt: null },
+        { priceUpdatedAt: { lt: oneHourAgo } },
+      ],
+    },
     select: { steamId: true },
   });
 
@@ -270,67 +395,28 @@ export const refreshGamesInWishlist = async (
   let refreshed = 0;
   let failed = 0;
 
-  await prisma.$transaction(async (tx) => {
-    for (const game of games) {
-      const id = String(game.steamId);
-      const data = steamData[id];
+  for (const game of games) {
+    const id = String(game.steamId);
+    const data = steamData[id];
 
-      if (data) {
-        await tx.wishlistGame.update({
-          where: { steamId_wishlistId: { steamId: game.steamId, wishlistId } },
-          data: {
-            name: data.name,
-            currentPrice: data.currentPrice,
-            originalPrice: data.originalPrice,
-            discountPercent: data.discountPercent,
-            currency: data.currency,
-            imageUrl: data.imageUrl,
-            priceUpdatedAt: new Date(),
-          },
-        });
-        refreshed++;
-      } else {
-        failed++;
-      }
+    if (data) {
+      await prisma.game.update({
+        where: { steamId: game.steamId },
+        data: {
+          name: data.name,
+          currentPrice: data.currentPrice,
+          originalPrice: data.originalPrice,
+          discountPercent: data.discountPercent,
+          currency: data.currency,
+          imageUrl: data.imageUrl,
+          priceUpdatedAt: new Date(),
+        },
+      });
+      refreshed++;
+    } else {
+      failed++;
     }
-  });
+  }
 
   return { refreshed, failed };
-};
-
-export const refreshAllUserGames = async (
-  userId: string,
-): Promise<RefreshGamesResult> => {
-  const wishlists = await prisma.wishlist.findMany({
-    where: { userId },
-    select: { id: true },
-  });
-
-  let totalRefreshed = 0;
-  let totalFailed = 0;
-
-  for (const wishlist of wishlists) {
-    const result = await refreshGamesInWishlist(wishlist.id, userId);
-    totalRefreshed += result.refreshed;
-    totalFailed += result.failed;
-  }
-
-  return { refreshed: totalRefreshed, failed: totalFailed };
-};
-
-export const refreshAllGames = async (): Promise<RefreshGamesResult> => {
-  const users = await prisma.user.findMany({
-    select: { id: true },
-  });
-
-  let totalRefreshed = 0;
-  let totalFailed = 0;
-
-  for (const user of users) {
-    const result = await refreshAllUserGames(user.id);
-    totalRefreshed += result.refreshed;
-    totalFailed += result.failed;
-  }
-
-  return { refreshed: totalRefreshed, failed: totalFailed };
 };
