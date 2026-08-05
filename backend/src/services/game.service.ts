@@ -1,6 +1,10 @@
 import { prisma } from '../config/prisma.js';
 import { fetchGameDetails, fetchGameDetailsBatch } from './steam.service.js';
 
+// How long (in hours) before game data is considered stale (from env, default 3 hours)
+const STALE_THRESHOLD_HOURS = parseInt(process.env.STEAM_GAME_STALE_HOURS ?? '3', 10);
+const STALE_THRESHOLD_MS = STALE_THRESHOLD_HOURS * 60 * 60 * 1000;
+
 export interface GameSummary {
   id: string;
   steamId: string;
@@ -282,6 +286,9 @@ export const refreshGamesInWishlist = async (
     throw new Error('Wishlist not found');
   }
 
+  const staleThreshold = new Date(Date.now() - STALE_THRESHOLD_MS);
+
+  // Get games in this wishlist that need refreshing (stale based on Game.updatedAt)
   const wishlistGames = await prisma.wishlistGame.findMany({
     where: { wishlistId },
     select: { gameId: true },
@@ -292,13 +299,28 @@ export const refreshGamesInWishlist = async (
   }
 
   const uniqueGameIds = [...new Set(wishlistGames.map((wg) => wg.gameId))];
-  const steamIds = uniqueGameIds.map((id) => String(id));
+
+  // Filter to only games that need refreshing based on Game.updatedAt
+  const staleGames = await prisma.game.findMany({
+    where: {
+      steamId: { in: uniqueGameIds },
+      updatedAt: { lt: staleThreshold },
+    },
+    select: { steamId: true },
+  });
+
+  if (staleGames.length === 0) {
+    return { refreshed: 0, failed: 0 };
+  }
+
+  const staleGameIds = staleGames.map((g) => g.steamId);
+  const steamIds = staleGameIds.map((id) => String(id));
   const steamData = await fetchGameDetailsBatch(steamIds);
 
   let refreshed = 0;
   let failed = 0;
 
-  for (const gameId of uniqueGameIds) {
+  for (const gameId of staleGameIds) {
     const id = String(gameId);
     const data = steamData[id];
 
@@ -312,7 +334,6 @@ export const refreshGamesInWishlist = async (
           discountPercent: data.discountPercent,
           currency: data.currency,
           imageUrl: data.imageUrl,
-          priceUpdatedAt: new Date(),
         },
       });
       refreshed++;
@@ -340,13 +361,29 @@ export const refreshAllUserGames = async (
     return { refreshed: 0, failed: 0 };
   }
 
-  const steamIds = uniqueGameIds.map((id) => String(id));
+  const staleThreshold = new Date(Date.now() - STALE_THRESHOLD_MS);
+
+  // Filter to only games that need refreshing
+  const staleGames = await prisma.game.findMany({
+    where: {
+      steamId: { in: uniqueGameIds },
+      updatedAt: { lt: staleThreshold },
+    },
+    select: { steamId: true },
+  });
+
+  if (staleGames.length === 0) {
+    return { refreshed: 0, failed: 0 };
+  }
+
+  const staleGameIds = staleGames.map((g) => g.steamId);
+  const steamIds = staleGameIds.map((id) => String(id));
   const steamData = await fetchGameDetailsBatch(steamIds);
 
   let refreshed = 0;
   let failed = 0;
 
-  for (const gameId of uniqueGameIds) {
+  for (const gameId of staleGameIds) {
     const id = String(gameId);
     const data = steamData[id];
 
@@ -360,7 +397,6 @@ export const refreshAllUserGames = async (
           discountPercent: data.discountPercent,
           currency: data.currency,
           imageUrl: data.imageUrl,
-          priceUpdatedAt: new Date(),
         },
       });
       refreshed++;
@@ -373,29 +409,27 @@ export const refreshAllUserGames = async (
 };
 
 export const refreshAllGames = async (): Promise<RefreshGamesResult> => {
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const staleThreshold = new Date(Date.now() - STALE_THRESHOLD_MS);
 
-  const games = await prisma.game.findMany({
+  const staleGames = await prisma.game.findMany({
     where: {
-      OR: [
-        { priceUpdatedAt: null },
-        { priceUpdatedAt: { lt: oneHourAgo } },
-      ],
+      updatedAt: { lt: staleThreshold },
     },
     select: { steamId: true },
   });
 
-  if (games.length === 0) {
+  if (staleGames.length === 0) {
     return { refreshed: 0, failed: 0 };
   }
 
-  const steamIds = games.map((g) => String(g.steamId));
+  const staleGameIds = staleGames.map((g) => g.steamId);
+  const steamIds = staleGameIds.map((id) => String(id));
   const steamData = await fetchGameDetailsBatch(steamIds);
 
   let refreshed = 0;
   let failed = 0;
 
-  for (const game of games) {
+  for (const game of staleGames) {
     const id = String(game.steamId);
     const data = steamData[id];
 
@@ -409,7 +443,6 @@ export const refreshAllGames = async (): Promise<RefreshGamesResult> => {
           discountPercent: data.discountPercent,
           currency: data.currency,
           imageUrl: data.imageUrl,
-          priceUpdatedAt: new Date(),
         },
       });
       refreshed++;
