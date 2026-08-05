@@ -182,10 +182,6 @@ export const wishlistApi = api.injectEndpoints({
         url: `/wishlists/${wishlistId}/games/refresh`,
         method: 'POST',
       }),
-      invalidatesTags: (_result, _error, wishlistId) => [
-        { type: 'Wishlist' as const, id: wishlistId },
-        'Game',
-      ],
     }),
   }),
 });
