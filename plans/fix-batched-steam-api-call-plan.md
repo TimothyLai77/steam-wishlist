@@ -56,7 +56,7 @@ model WishlistGame {
 
 ## Implementation Steps
 
-### Step 1: Reset Prisma Migrations (Rebase to New Schema as Initial)
+### Step 1: Reset Prisma Migrations (Rebase to New Schema as Initial) ✅ COMPLETED
 
 Since the app is in development with no deployed instances or real data, reset the migration history so the new schema becomes the "starting point":
 
@@ -70,7 +70,11 @@ Since the app is in development with no deployed instances or real data, reset t
 
 This avoids writing a data migration script and gives a clean single migration as the project baseline.
 
-### Step 2: Update game.service.ts
+**Notes:**
+- Ran `prisma migrate reset --force` to clear drift from old migration history before generating new migration
+- Generated migration: `20260803194039_init/migration.sql`
+
+### Step 2: Update game.service.ts ✅ COMPLETED
 
 Key changes in [`game.service.ts`](backend/src/services/game.service.ts):
 
@@ -93,7 +97,13 @@ Key changes in [`game.service.ts`](backend/src/services/game.service.ts):
    - Change `steamId` source from `WishlistGame.steamId` to `Game.steamId`
    - Pull metadata fields from `Game` instead of `WishlistGame`
 
-### Step 3: Update wishlist.service.ts
+**Additional changes:**
+- Updated `removeGameFromWishlist` to use `gameId_wishlistId` composite key
+- Updated `moveGameToWishlist` to delete old `WishlistGame` and create new one with target wishlist (since composite key includes `wishlistId`), preserving `notes` and `rank`
+- Updated `refreshAllUserGames` to deduplicate games across wishlists before refreshing
+- Updated `refreshAllGames` to query `Game` records where `priceUpdatedAt` is null or older than 1 hour
+
+### Step 3: Update wishlist.service.ts ✅ COMPLETED
 
 Key changes in [`wishlist.service.ts`](backend/src/services/wishlist.service.ts):
 
@@ -107,28 +117,35 @@ Key changes in [`wishlist.service.ts`](backend/src/services/wishlist.service.ts)
 3. **Update WishlistWithGames interface**
    - Game objects in the response now derive metadata from `Game`, not `WishlistGame`
 
-### Step 4: Update Controllers
+### Step 4: Update Controllers ✅ COMPLETED (NO CHANGES NEEDED)
 
 1. **game.controller.ts**
-   - Ensure request/response shapes match updated service interfaces
-   - Any endpoint that previously accepted/returned `steamId` as part of `WishlistGame` now references it via the `Game` relation
+   - No changes needed. Service layer preserved external API contracts.
+   - Endpoints still pass `steamId` (semantically same as `gameId` since `Game.steamId` is the PK)
+   - Response shapes (`GameSummary`, `MoveGameResult`, `RefreshGamesResult`) unchanged
 
 2. **wishlist.controller.ts**
-   - No major changes expected if service layer abstraction is clean, but verify response shapes
+   - No changes needed. Response shapes (`WishlistWithGames`, game arrays) unchanged
 
-### Step 5: Update steam.service.ts
+**Verification:** Backend TypeScript compiler (`npx tsc --noEmit`) passes with zero errors.
+
+### Step 5: Update steam.service.ts ✅ COMPLETED (NO CHANGES NEEDED)
 
 1. No fundamental changes required to Steam API calling logic
 2. The batching/rate-limiting improvements (p-queue) mentioned in the issue are a separate but related enhancement
 3. Ensure `fetchGameDetails` and `fetchGameDetailsBatch` return shapes compatible with `Game` model fields
 
-### Step 6: Update Frontend Types and API Clients
+**Verification:** `SteamGameDetails` interface fields are fully compatible with `Game` model fields.
 
-1. **frontend/src/types/** - Update any game-related types if the API response shape changes
-2. **frontend/src/app/services/api.ts** - Verify API client calls match updated backend endpoints
-3. **frontend/src/features/wishlists/** - Components consume game data; verify no hardcoded assumptions about field sources
+### Step 6: Update Frontend Types and API Clients ✅ COMPLETED (NO CHANGES NEEDED)
 
-### Step 7: Testing
+1. **frontend/src/types/** - No changes needed (only `user.ts` exists)
+2. **frontend/src/app/services/wishlistApi.ts** - Types (`GameSummary`, `WishlistWithGames`, `AllGamesGame`) match backend response shapes exactly
+3. **frontend/src/features/wishlists/** - Components consume the same field names
+
+**Verification:** Frontend TypeScript compiler (`npx tsc --noEmit`) passes with zero errors.
+
+### Step 7: Testing ⏳ PENDING
 
 1. Run existing tests and fix failures
 2. Verify:
