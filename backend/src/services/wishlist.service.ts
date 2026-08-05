@@ -73,6 +73,7 @@ export const getWishlistById = async (
     where: { id: wishlistId, userId },
     include: {
       games: {
+        include: { game: true },
         orderBy: { addedAt: "desc" },
       },
       _count: {
@@ -93,16 +94,16 @@ export const getWishlistById = async (
     gameCount: wishlist._count.games,
     createdAt: wishlist.createdAt,
     updatedAt: wishlist.updatedAt,
-    games: wishlist.games.map((g) => ({
-      steamId: g.steamId,
-      name: g.name,
-      currentPrice: g.currentPrice?.toNumber() ?? null,
-      originalPrice: g.originalPrice?.toNumber() ?? null,
-      discountPercent: g.discountPercent,
-      imageUrl: g.imageUrl,
-      notes: g.notes,
-      addedAt: g.addedAt,
-      priceUpdatedAt: g.priceUpdatedAt,
+    games: wishlist.games.map((wg) => ({
+      steamId: wg.game.steamId,
+      name: wg.game.name,
+      currentPrice: wg.game.currentPrice?.toNumber() ?? null,
+      originalPrice: wg.game.originalPrice?.toNumber() ?? null,
+      discountPercent: wg.game.discountPercent,
+      imageUrl: wg.game.imageUrl,
+      notes: wg.notes,
+      addedAt: wg.addedAt,
+      priceUpdatedAt: wg.game.priceUpdatedAt,
     })),
   };
 };
@@ -191,6 +192,7 @@ export const getAllGamesForUser = async (userId: string) => {
     where: { userId },
     include: {
       games: {
+        include: { game: true },
         orderBy: { addedAt: "desc" },
       },
     },
@@ -209,14 +211,14 @@ export const getAllGamesForUser = async (userId: string) => {
   }> = [];
 
   for (const wishlist of wishlists) {
-    for (const game of wishlist.games) {
+    for (const wg of wishlist.games) {
       allGames.push({
-        steamId: game.steamId,
-        name: game.name,
-        currentPrice: game.currentPrice?.toNumber() ?? null,
-        originalPrice: game.originalPrice?.toNumber() ?? null,
-        discountPercent: game.discountPercent,
-        addedAt: game.addedAt,
+        steamId: wg.game.steamId,
+        name: wg.game.name,
+        currentPrice: wg.game.currentPrice?.toNumber() ?? null,
+        originalPrice: wg.game.originalPrice?.toNumber() ?? null,
+        discountPercent: wg.game.discountPercent,
+        addedAt: wg.addedAt,
         wishlistId: wishlist.id,
         wishlistName: wishlist.name,
       });

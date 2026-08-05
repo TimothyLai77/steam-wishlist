@@ -104,20 +104,12 @@ const WishlistGamesPage = () => {
     const handleRefresh = async () => {
         if (!wishlistId) return;
         try {
-            const result = await refreshGames(wishlistId).unwrap();
-            if (result.failed > 0) {
-                toast.add({
-                    title: 'Refresh completed with warnings',
-                    description: `Refreshed ${result.refreshed} game${result.refreshed !== 1 ? 's' : ''}. ${result.failed} game${result.failed !== 1 ? 's' : ''} could not be updated.`,
-                    type: 'success',
-                });
-            } else {
-                toast.add({
-                    title: 'Refresh completed',
-                    description: `Refreshed ${result.refreshed} game${result.refreshed !== 1 ? 's' : ''}.`,
-                    type: 'success',
-                });
-            }
+            await refreshGames(wishlistId).unwrap();
+            toast.add({
+                title: 'Refresh started',
+                description: 'Your prices are being updated. Refresh the page to see the latest data.',
+                type: 'success',
+            });
         } catch {
             toast.add({
                 title: 'Refresh failed',

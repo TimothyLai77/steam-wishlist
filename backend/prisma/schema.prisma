@@ -31,19 +31,29 @@ model Wishlist {
   updatedAt   DateTime       @updatedAt
 }
 
-model WishlistGame {
-  steamId        Int
-  wishlistId     String
-  wishlist       Wishlist  @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
-  name           String
-  currentPrice   Decimal?
-  originalPrice  Decimal?
-  discountPercent Int?
-  currency       String    @default("USD")
-  imageUrl       String?
-  addedAt        DateTime  @default(now())
-  priceUpdatedAt DateTime?
-  notes          String?
+model Game {
+  steamId          Int              @id @map("steam_id")
+  name             String
+  currentPrice     Decimal?         @map("current_price")
+  originalPrice    Decimal?         @map("original_price")
+  discountPercent  Int?             @map("discount_percent")
+  currency         String           @default("USD") @map("currency")
+  imageUrl         String?          @map("image_url")
+  priceUpdatedAt   DateTime?        @map("price_updated_at")
+  wishlistGames    WishlistGame[]
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt      @map("updated_at")
+}
 
-  @@id([steamId, wishlistId])
+model WishlistGame {
+  gameId           Int
+  wishlistId       String
+  game             Game       @relation(fields: [gameId], references: [steamId], onDelete: Cascade)
+  wishlist         Wishlist   @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  addedAt          DateTime   @default(now()) @map("added_at")
+  notes            String?
+  rank             Int        @default(0) @map("rank")
+
+  @@id([gameId, wishlistId])
+  @@map("wishlist_games")
 }
