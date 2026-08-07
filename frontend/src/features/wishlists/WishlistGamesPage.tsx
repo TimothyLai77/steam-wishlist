@@ -31,7 +31,7 @@ const WishlistGamesPage = () => {
     const { id: wishlistId } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { data: wishlists } = useGetWishlistsQuery();
-    const { data: games = [], isLoading, refetch } = useGetGamesQuery(wishlistId || '');
+    const { data: games = [], isLoading } = useGetGamesQuery(wishlistId || '');
 
     const [sortKey, setSortKey] = useState<SortKey>('createdAt');
     const [sortDir, setSortDir] = useState<SortDir>('desc');
