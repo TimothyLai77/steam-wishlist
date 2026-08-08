@@ -1,7 +1,12 @@
 # other
-
+*.db.*
+*.db
 .env
+.dev.env
 .vscode/
+data/
+frontend/dist/
+backend/dist/
 # MacOS
 .DS_Store
 # Logs

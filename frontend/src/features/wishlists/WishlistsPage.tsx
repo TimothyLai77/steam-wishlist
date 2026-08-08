@@ -1,0 +1,263 @@
+import { useState } from 'react';
+import {
+  useGetWishlistsQuery,
+  usePostWishlistMutation,
+  usePutWishlistMutation,
+  useDeleteWishlistMutation,
+} from '../../app/services/wishlistApi';
+import { Button } from '../../../components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../../components/ui/dialog';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { PlusIcon, ListIcon, TrashIcon } from '@phosphor-icons/react';
+import { toast } from '../../../components/ui/toast';
+import { WishlistCard } from './WishlistCard';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
+
+const WishlistsPage = () => {
+  const { data: wishlists = [], isLoading } = useGetWishlistsQuery();
+  const [createWishlist, { isLoading: creating }] = usePostWishlistMutation();
+  const [updateWishlist, { isLoading: updating }] = usePutWishlistMutation();
+  const [deleteWishlist, { isLoading: deleting }] = useDeleteWishlistMutation();
+
+  // Create dialog state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createName, setCreateName] = useState('');
+
+  // Rename dialog state
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameName, setRenameName] = useState('');
+
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteName, setDeleteName] = useState('');
+
+  const handleCreate = async () => {
+    if (!createName.trim()) return;
+    try {
+      await createWishlist({ name: createName.trim() }).unwrap();
+      setCreateDialogOpen(false);
+      setCreateName('');
+      toast.add({
+        title: 'Wishlist created',
+        description: `"${createName.trim()}" has been created.`,
+        type: 'success',
+      });
+    } catch {
+      toast.add({
+        title: 'Failed to create wishlist',
+        type: 'error',
+      });
+    }
+  };
+
+  const handleCreateKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleCreate();
+  };
+
+  const openRenameDialog = (id: string, currentName: string) => {
+    setRenameId(id);
+    setRenameName(currentName);
+    setRenameDialogOpen(true);
+  };
+
+  const handleRename = async () => {
+    if (!renameId || !renameName.trim()) return;
+    try {
+      await updateWishlist({ id: renameId, payload: { name: renameName.trim() } }).unwrap();
+      setRenameDialogOpen(false);
+      setRenameId(null);
+      setRenameName('');
+      toast.add({
+        title: 'Wishlist renamed',
+        description: `"${renameName.trim()}" has been updated.`,
+        type: 'success',
+      });
+    } catch {
+      toast.add({
+        title: 'Failed to rename wishlist',
+        type: 'error',
+      });
+    }
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleRename();
+  };
+
+  const openDeleteDialog = (id: string, name: string) => {
+    setDeleteId(id);
+    setDeleteName(name);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await deleteWishlist(deleteId).unwrap();
+      setDeleteDialogOpen(false);
+      setDeleteId(null);
+      setDeleteName('');
+      toast.add({
+        title: 'Wishlist deleted',
+        description: `"${deleteName}" and its games have been removed.`,
+        type: 'success',
+      });
+    } catch {
+      toast.add({
+        title: 'Failed to delete wishlist',
+        type: 'error',
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-muted-foreground">Loading wishlists...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">All Wishlists</h1>
+
+        </div>
+        <Button onClick={() => setCreateDialogOpen(true)}>
+          <PlusIcon size={18} weight="bold" className="mr-2" />
+          New Wishlist
+        </Button>
+      </div>
+
+      {/* Grid */}
+      {wishlists.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <ListIcon size={48} weight="light" className="text-muted-foreground mb-4" />
+          <p className="text-lg font-medium text-foreground">No wishlists yet</p>
+          <p className="text-muted-foreground mt-1 max-w-xs">
+            Create your first wishlist to start tracking games.
+          </p>
+          <Button className="mt-4" onClick={() => setCreateDialogOpen(true)}>
+            <PlusIcon size={18} weight="bold" className="mr-2" />
+            Create Wishlist
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {wishlists.map((wishlist: { id: string; name: string; gameCount: number }) => (
+            <WishlistCard
+              key={wishlist.id}
+              id={wishlist.id}
+              name={wishlist.name}
+              gameCount={wishlist.gameCount}
+              onRename={openRenameDialog}
+              onDelete={openDeleteDialog}
+              deleting={deleting}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Create Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Wishlist</DialogTitle>
+            <DialogDescription>
+              Give your wishlist a name to get started.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="wishlist-name">Name</Label>
+              <Input
+                id="wishlist-name"
+                placeholder="e.g., Must Haves"
+                value={createName}
+                onChange={(e) => setCreateName(e.target.value)}
+                onKeyDown={handleCreateKeyDown}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreate} disabled={!createName.trim() || creating}>
+              {creating ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename Wishlist</DialogTitle>
+            <DialogDescription>
+              Update the name of your wishlist.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="rename-name">Name</Label>
+              <Input
+                id="rename-name"
+                value={renameName}
+                onChange={(e) => setRenameName(e.target.value)}
+                onKeyDown={handleRenameKeyDown}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleRename} disabled={!renameName.trim() || updating}>
+              {updating ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title={
+          <div className="flex items-center gap-2">
+            <TrashIcon size={20} weight="bold" className="text-red-500" />
+            Delete Wishlist
+          </div>
+        }
+        description={
+          <>
+            Are you sure you want to delete <strong>{deleteName}</strong>? All games in this wishlist will be permanently removed. This cannot be undone.
+          </>
+        }
+        confirmLabel="Delete"
+        confirmVariant="destructive"
+        onConfirm={confirmDelete}
+        isLoading={deleting}
+      />
+    </div>
+  );
+};
+
+export default WishlistsPage;

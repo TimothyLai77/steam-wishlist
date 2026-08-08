@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0", // baseUrl is depcrecated, but apparently shadcn+tailwindcss still needs it?
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
+}
