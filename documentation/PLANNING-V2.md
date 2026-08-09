@@ -12,6 +12,7 @@ A private, self-hosted Steam wishlist management web application that allows 1-3
 - Support multi-user accounts (1-3 users) with secure login
 - **Each user can create and manage multiple named wishlists (e.g., "Must Haves", "On Sale Watch", "Co-op Games")**
 - Query real-time game data (price, discounts, release info) from Steam API
+- **RSS feed for price drop/sale notifications (user-subscribes via their RSS reader)**
 - Self-contained Docker deployment
 - Clean, modern UI with shadcn/ui and Tailwind CSS
 
@@ -34,6 +35,7 @@ A private, self-hosted Steam wishlist management web application that allows 1-3
 - **HTTP Client:** native `fetch` for Steam API calls
 - **Scheduling:** node-schedule for price refresh jobs
 - **Queue:** Custom job queue for Steam API rate limiting
+- **RSS Feed:** `rss` or `feed` library for generating notification feeds
 
 ### Frontend
 - **Framework:** React 19
@@ -144,6 +146,12 @@ erDiagram
 | GET | `/api/auth/profile` | Get current user profile (protected) | Implemented |
 | POST | `/api/auth/logout` | Client-side token removal only | N/A (client-side) |
 
+### Notifications
+
+| Method | Path | Description | Status |
+|--------|------|-------------|--------|
+| GET | `/api/rss/notifications/{userId}` | RSS feed of price changes for user (authenticated via query token) | Planned |
+
 ### Wishlists
 
 | Method | Path | Description | Status |
@@ -194,6 +202,7 @@ erDiagram
 - Scheduled daily refresh via [`price-refresh-job.ts`](backend/src/services/price-refresh-job.ts:1)
 - Configurable time via `PRICE_REFRESH_HOUR`, `PRICE_REFRESH_MINUTE`, `PRICE_REFRESH_TIMEZONE` env vars
 - Manual refresh endpoint available per wishlist
+- RSS feed automatically updated with price changes after each refresh
 
 ---
 
@@ -286,7 +295,8 @@ erDiagram
 │   │   ├── routes/
 │   │   │   ├── auth.routes.ts
 │   │   │   ├── wishlist.routes.ts
-│   │   │   └── game.routes.ts
+│   │   │   ├── game.routes.ts
+│   │   │   └── rss-feed.routes.ts
 │   │   ├── controllers/
 │   │   │   ├── auth.controller.ts
 │   │   │   ├── wishlist.controller.ts
@@ -296,7 +306,8 @@ erDiagram
 │   │   │   ├── user.service.ts
 │   │   │   ├── wishlist.service.ts
 │   │   │   ├── game.service.ts
-│   │   │   └── price-refresh-job.ts
+│   │   │   ├── price-refresh-job.ts
+│   │   │   └── rss-feed.service.ts
 │   │   ├── middleware/
 │   │   │   ├── auth.middleware.ts
 │   │   │   └── error.middleware.ts
@@ -405,15 +416,11 @@ VITE_API_URL=http://localhost:4000/api
 
 ### Phase 3: Polish & UX - PARTIAL
 - [x] Dashboard with summary stats
-- [ ] Responsive design improvements
-- [ ] Error handling and loading states polish
-- [ ] Theme support (dark/light mode)
+- [ ] Error handling and loading states polish (refresh polling endpoint)
 
 ### Phase 4: Optional Enhancements - NOT STARTED
-- [ ] Wishlist sharing links (read-only view)
-- [ ] Export wishlist to CSV
 - [ ] Steam profile integration (import existing wishlist)
-- [ ] Email notifications for price drops
+- [ ] RSS feed for price drop/sale notifications
 
 ---
 
