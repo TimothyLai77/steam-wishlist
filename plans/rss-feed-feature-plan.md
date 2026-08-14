@@ -129,7 +129,7 @@ Each task below is self-contained: it includes the context an implementer needs,
 
 > Conventions: run backend commands from `backend/`. Type-check with `npx tsc --noEmit`. "Done" means the definition-of-done checks pass.
 
-### Task 1 — Database schema: `PriceChangeLog` + `User.rssTokenHash`
+### Task 1 — Database schema: `PriceChangeLog` + `User.rssTokenHash` DONE.
 
 - **Depends on:** none
 - **Files:** `backend/prisma/schema.prisma` (+ generated migration)
@@ -158,7 +158,7 @@ Each task below is self-contained: it includes the context an implementer needs,
   - Migration applies with no errors; `npx prisma generate` succeeds.
   - The generated client exposes `priceChangeLog` and `User.rssTokenHash`.
 
-### Task 2 — Add `feed` dependency
+### Task 2 — Add `feed` dependency DONE
 
 - **Depends on:** none (can run in parallel with Task 1)
 - **Files:** `backend/package.json`
