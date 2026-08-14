@@ -168,7 +168,7 @@ Each task below is self-contained: it includes the context an implementer needs,
   - `feed` is in `dependencies`, `@types/feed` in `devDependencies`.
   - A scratch file containing `import Feed from 'feed';` passes `npx tsc --noEmit`.
 
-### Task 3 — Price-change logging helper + wire into all update paths
+### Task 3 — Price-change logging helper + wire into all update paths DONE
 
 - **Depends on:** Task 1
 - **Files:** `backend/src/services/game.service.ts`
