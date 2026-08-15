@@ -2,7 +2,7 @@
 
 ## Goal
 
-Provide per-user RSS feeds that report price changes across all their wishlists, so users can subscribe with external RSS readers and get notified of sales without polling.
+Provide per-user RSS feeds that report price drops across all their wishlists, so users can subscribe with external RSS readers and get notified of sales without polling.
 
 ## Design Decisions
 
@@ -12,7 +12,7 @@ Provide per-user RSS feeds that report price changes across all their wishlists,
 - HTTP caching headers used as an additional optimization.
 - Uses a lightweight `PriceChangeLog` model as a short-lived notification changelog (not permanent history); entries are auto-deleted after 30 days.
 - **All** price-update paths log changes (daily job + manual per-wishlist/per-user refresh + fetch-on-add), so the feed never misses a change a user can see in the UI.
-- One feed item per price-change event (per game); the user's wishlist names are listed in the item description.
+- One feed item per price-drop event (per game); the user's wishlist names are listed in the item description. Price increases are still logged but never rendered in the feed (filter lives in `buildFeedXml`, so the log stays a full changelog).
 - Feed title is generic ("Steam Wishlist Price Updates") — no username, avoids exposing semi-sensitive info.
 
 ## Components
@@ -196,7 +196,7 @@ Each task below is self-contained: it includes the context an implementer needs,
 - **Definition of done:**
   - The daily job deletes `PriceChangeLog` rows older than 30 days and still logs refresh results as before.
 
-### Task 5 — In-memory TTL cache module
+### Task 5 — In-memory TTL cache module DONE
 
 - **Depends on:** none
 - **Files:** new `backend/src/services/rss-cache.ts`
@@ -209,7 +209,7 @@ Each task below is self-contained: it includes the context an implementer needs,
   - `get` returns fresh values within the TTL and `undefined` after expiry.
   - The map never exceeds the cap. `npx tsc --noEmit` passes.
 
-### Task 6 — RSS service: token + feed generation
+### Task 6 — RSS service: token + feed generation DONE
 
 - **Depends on:** Tasks 1, 2, 5
 - **Files:** new `backend/src/services/rss.service.ts`
@@ -273,6 +273,6 @@ Each task below is self-contained: it includes the context an implementer needs,
 ## Open Questions / Notes
 
 - Not redundant with SteamDB: bounded 30-day window, per-user wishlist scope, optimized for this use case.
-- Price increases are included (feed reports any change); could be made configurable later.
+- Price increases are logged but excluded from the feed (drops only, decided after Task 6); could be made configurable later.
 - No rate limiting for now; RSS readers poll infrequently. Revisit if abuse appears.
 - The `priceUpdatedAt` staleness quirk is out of scope for this feature.
