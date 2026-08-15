@@ -185,7 +185,7 @@ Each task below is self-contained: it includes the context an implementer needs,
   - A refresh that changes price/discount creates exactly one `PriceChangeLog` row; no change creates none.
   - `npx tsc --noEmit` passes.
 
-### Task 4 — Cleanup of old `PriceChangeLog` entries
+### Task 4 — Cleanup of old `PriceChangeLog` entries DONE
 
 - **Depends on:** Task 1
 - **Files:** `backend/src/services/price-refresh-job.ts`

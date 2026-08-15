@@ -1,5 +1,9 @@
 import schedule from 'node-schedule';
+import { prisma } from '../config/prisma.js';
 import { refreshAllGames } from './game.service.js';
+
+// PriceChangeLog entries are a short-lived notification log; purge after 30 days
+const PRICE_CHANGE_LOG_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function startPriceRefreshJob() {
     const hour = parseInt(process.env.PRICE_REFRESH_HOUR ?? '13', 10);
@@ -31,6 +35,15 @@ export function startPriceRefreshJob() {
             );
         } catch (error) {
             console.error('[PRICE-REFRESH] Error during scheduled refresh:', error);
+        }
+
+        try {
+            const deleted = await prisma.priceChangeLog.deleteMany({
+                where: { timestamp: { lt: new Date(Date.now() - PRICE_CHANGE_LOG_RETENTION_MS) } },
+            });
+            console.log(`[PRICE-REFRESH] Cleaned up ${deleted.count} old price change log entries`);
+        } catch (error) {
+            console.error('[PRICE-REFRESH] Error cleaning up price change log:', error);
         }
     }
     );
