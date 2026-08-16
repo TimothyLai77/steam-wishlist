@@ -74,9 +74,10 @@ app.get("/db", async (_req, res) => {
 
 // Serve built frontend in production
 if (isProduction) {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const frontendDist = path.resolve(__dirname, "../frontend/dist");
+  // projectRoot (computed at the top) is correct for both the tsx (src/)
+  // and compiled (dist/) layouts — do NOT derive this from __dirname here,
+  // which would resolve to backend/frontend/dist (a level too shallow).
+  const frontendDist = path.join(projectRoot, "frontend", "dist");
 
   // Serve static files
   app.use(express.static(frontendDist));
