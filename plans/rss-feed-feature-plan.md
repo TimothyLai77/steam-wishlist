@@ -226,7 +226,7 @@ Each task below is self-contained: it includes the context an implementer needs,
   - `validateToken` returns the correct user / `null`.
   - `buildFeedXml` returns valid RSS XML containing the expected items. `npx tsc --noEmit` passes.
 
-### Task 7 — Routes and wiring
+### Task 7 — Routes and wiring DONE.
 
 - **Depends on:** Task 6
 - **Files:** new `backend/src/controllers/rss.controller.ts`, new `backend/src/routes/rss.routes.ts`, `backend/src/index.ts`

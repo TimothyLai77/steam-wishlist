@@ -22,6 +22,7 @@ import { errorHandler } from "./middleware/error.middleware.js";
 import authRoutes from "./routes/auth.routes.js";
 import wishlistRoutes from "./routes/wishlist.routes.js";
 import gameRoutes from "./routes/game.routes.js";
+import rssApiRoutes, { rssFeedRoutes } from "./routes/rss.routes.js";
 import { startPriceRefreshJob } from "./services/price-refresh-job.js";
 
 const app = express();
@@ -49,6 +50,11 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/wishlists", wishlistRoutes);
 app.use("/api", gameRoutes);
+app.use("/api/rss", rssApiRoutes);
+
+// Public RSS feed — must be registered before the production SPA fallback
+// below, or the fallback route swallows it in production.
+app.use("/rss", rssFeedRoutes);
 
 // Health check
 app.get("/health", (_req, res) => {
