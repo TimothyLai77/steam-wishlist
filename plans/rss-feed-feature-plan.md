@@ -240,17 +240,84 @@ Each task below is self-contained: it includes the context an implementer needs,
   - `GET /rss?token=...` returns 200 RSS XML; a bad token returns 401.
   - In production mode, `/rss` is not swallowed by the SPA fallback. `npx tsc --noEmit` passes.
 
-### Task 8 — Frontend UI
+### Task 8 — Frontend UI: RSS Feed dialog (sidebar)
 
 - **Depends on:** Task 7
-- **Files:** `frontend/src/features/dashboard/DashboardPage.tsx` (or a new component), `frontend/src/app/services/api.ts` (or a new `rssApi.ts`)
-- **Steps:**
-  1. Add an API helper for `POST /api/rss/token`.
-  2. Add a dashboard section/dialog: "Show feed URL" (calls the endpoint, displays the URL with a copy button) and "Regenerate token".
-  3. Show a note that the token is only displayed once.
+- **Files:** new `frontend/src/features/rss/RssSettingsDialog.tsx`, new `frontend/src/app/services/rssApi.ts`, `frontend/src/components/Layout/AppLayout.tsx`
+
+**Design context (extend the existing system, don't invent a new one):**
+
+- `components/ui/dialog.tsx` is Base UI-based: `rounded-none` chrome, `font-heading` (JetBrains Mono) titles, `text-xs/relaxed` descriptions, default width `sm:max-w-sm`. It already handles focus trap, Esc, and backdrop close.
+- Tokens live in `frontend/src/index.css`. Note: `--code-bg`, `--accent-border`, and `--text-h` are defined on `:root` (light + dark) but are **not** mapped into the Tailwind theme — use arbitrary values (e.g. `bg-[var(--code-bg)]`, `border-[var(--accent-border)]`) rather than adding theme entries.
+- `frontend/src/components/ConfirmDialog.tsx` exists for the rotation warning.
+- Phosphor icons: use `RssIcon` (trigger) and `CheckIcon` (copy feedback) from `@phosphor-icons/react`.
+
+**UX contract:**
+
+- **Trigger:** an "RSS Feed" button with `RssIcon`, placed in the sidebar bottom section **above Logout** (inside `sidebarContent()` in AppLayout, so it appears in both the desktop sidebar and the mobile sheet). Follow the existing collapsed pattern: icon-only with a `title` tooltip when the sidebar is collapsed.
+- **Persistence:** the server cannot return the current URL (`POST /api/rss/token` always rotates), so the dialog persists the last `feedUrl` in `localStorage` (key: `rssFeedUrl`) and shows it across reloads.
+- **State A — no saved URL:**
+
+  ```
+  ┌──────────────────────────────────┐
+  │ RSS Feed                     [x] │
+  │                                  │
+  │ Get price drops from all your    │
+  │ wishlists in your RSS reader.    │
+  │ Your link is private and is      │
+  │ shown only once.                 │
+  │                                  │
+  │ ┌──────────────────────────────┐ │
+  │ │ Create feed URL              │ │
+  │ └──────────────────────────────┘ │
+  └──────────────────────────────────┘
+  ```
+
+  One primary button, **Create feed URL**, with a loading state while the mutation is pending.
+- **State B — URL present** (just created or loaded from localStorage):
+
+  ```
+  ┌──────────────────────────────────┐
+  │ RSS Feed                     [x] │
+  │                                  │
+  │ Paste this link into your RSS    │
+  │ reader. You won't be able to     │
+  │ see it again.                    │
+  │                                  │
+  │ ┌──────────────────────────────┐ │
+  │ │                          once│
+  │ │ https://your-app/rss?token=  │
+  │ │ 9f3a…c21b          [Copy]    │
+  │ └──────────────────────────────┘ │
+  │                                  │
+  │ [ Regenerate link ]              │
+  └──────────────────────────────────┘
+  ```
+
+- **Ticket chip (the one deliberate design element):** the URL shown as a one-time "ticket", not a plain input. Read-only `<textarea>` (stays fully selectable as a manual-copy fallback), `break-all` so the long token wraps, `font-heading` (JetBrains Mono — **not** `font-mono`, which is not the app's mono), `text-xs`, background `var(--code-bg)`, ~4px radius, **dashed** border in `var(--accent-border)`. A tiny uppercase mono tag `shown once` sits in the chip's top-right corner. The dashed border encodes the true fact that the URL is one-time-use; everything else in the dialog stays stock.
+- **Copy:** `navigator.clipboard.writeText` with the full URL; the button flips to a check + "Copied" for ~1.5 s (wrap the label in a `role="status"` element for screen readers). No toast — the button is the confirmation.
+- **Regenerate:** **Regenerate link** (outline/neutral — the danger lives in the confirm step, not the first click) opens `ConfirmDialog`: title "Regenerate link?", description "Your current link will stop working. Readers using it won't get updates until you add the new one.", confirm **Regenerate** (destructive variant), cancel **Keep current link**. On confirm: call the mutation, replace the chip's URL (with the reveal animation again), overwrite `rssFeedUrl` in localStorage.
+- **Error state** (mutation failure): one line of destructive-colored text under the primary button: "Couldn't create your link. Check your connection and try again."
+- **Motion:** when a URL is *created* (not on reload from localStorage), the chip mounts with a single ~150 ms fade (`animate-in fade-in-0 duration-150`, matching the dialog's own 100 ms fade/zoom entrance); add `motion-reduce:animate-none`.
+- **Dialog width:** override the default to `sm:max-w-md` (`sm:max-w-sm` is too narrow for the URL).
+- **Mobile:** opening the dialog from the mobile sheet must also close the sheet (AppLayout passes an open-change callback that calls `setMobileOpen(false)` in mobile mode).
+
+**Steps:**
+
+1. `rssApi.ts`: `api.injectEndpoints` with `generateToken: builder.mutation<{ token: string; feedUrl: string }, void>` hitting `/rss/token` (the shared `baseUrl` is already `/api`, and `prepareHeaders` already injects the JWT). Export the generated hook.
+2. `RssSettingsDialog.tsx`: self-contained component owning its open state, the localStorage read, the mutation, and both states above; renders the trigger button and the `Dialog` (with the ticket chip, copy, and regenerate confirm per the UX contract).
+3. `AppLayout.tsx`: render `<RssSettingsDialog />` in the sidebar bottom section above the Logout button (inside `sidebarContent()`); wire the mobile-sheet-close callback.
+
 - **Definition of done:**
-  - An authenticated user can view and copy the feed URL from the dashboard.
-  - Regenerating produces a new URL and invalidates the old one.
+  - "RSS Feed" button visible above Logout in both the desktop sidebar and the mobile sheet; icon-only with tooltip when collapsed.
+  - First open shows State A; **Create feed URL** calls `POST /api/rss/token`, then shows State B with the returned URL; the URL is persisted to localStorage.
+  - Reload the page and reopen the dialog → State B shows the persisted URL with **no** new token request.
+  - **Copy** places the full URL on the clipboard and flips to "Copied".
+  - **Regenerate link** → confirm → new URL shown and stored; the old URL now returns 401 from `GET /rss`.
+  - **Keep current link** closes the confirm with no request.
+  - A mutation failure shows the error line and the dialog remains usable.
+  - Keyboard: Esc closes, focus is trapped, all controls reachable; the chip reveal respects `prefers-reduced-motion`.
+  - Opening the dialog from the mobile sheet closes the sheet.
   - `npm run build` (frontend) passes.
 
 ### Task 9 — End-to-end verification
@@ -276,3 +343,4 @@ Each task below is self-contained: it includes the context an implementer needs,
 - Price increases are logged but excluded from the feed (drops only, decided after Task 6); could be made configurable later.
 - No rate limiting for now; RSS readers poll infrequently. Revisit if abuse appears.
 - The `priceUpdatedAt` staleness quirk is out of scope for this feature.
+- Production deployment: `APP_URL` (used for the returned `feedUrl` and the feed `link`) defaults to `http://localhost:5173`, but `/rss` is served by the **backend**. Set `APP_URL` to the public origin that actually serves `/rss`, or users will copy a URL that 404s in their RSS reader.
