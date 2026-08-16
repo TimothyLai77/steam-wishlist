@@ -15,6 +15,8 @@ process.env.NODE_ENV = appEnv === "production" ? "production" : "development";
 
 const isProduction = appEnv === "production";
 
+import { existsSync } from "fs";
+
 import express from "express";
 import cors from "cors";
 import { prisma } from "./config/prisma.js";
@@ -72,13 +74,16 @@ app.get("/db", async (_req, res) => {
   }
 });
 
-// Serve built frontend in production
-if (isProduction) {
-  // projectRoot (computed at the top) is correct for both the tsx (src/)
-  // and compiled (dist/) layouts — do NOT derive this from __dirname here,
-  // which would resolve to backend/frontend/dist (a level too shallow).
-  const frontendDist = path.join(projectRoot, "frontend", "dist");
+// Serve the built frontend when a production build exists in
+// frontend/dist (local "npm run build + serve" mode) or when running
+// in production (Docker/deploy).
+// projectRoot (computed at the top) is correct for both the tsx (src/)
+// and compiled (dist/) layouts — do NOT derive this from __dirname here,
+// which would resolve to backend/frontend/dist (a level too shallow).
+const frontendDist = path.join(projectRoot, "frontend", "dist");
+const hasFrontendBuild = existsSync(frontendDist);
 
+if (isProduction || hasFrontendBuild) {
   // Serve static files
   app.use(express.static(frontendDist));
 
@@ -93,8 +98,8 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
-  if (isProduction) {
-    console.log("Serving frontend in production mode");
+  if (isProduction || hasFrontendBuild) {
+    console.log("Serving frontend build from frontend/dist");
   }
 
   // Start scheduled price refresh job
