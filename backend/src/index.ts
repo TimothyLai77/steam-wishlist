@@ -77,9 +77,11 @@ app.get("/db", async (_req, res) => {
 // Serve the built frontend when a production build exists in
 // frontend/dist (local "npm run build + serve" mode) or when running
 // in production (Docker/deploy).
-// projectRoot (computed at the top) is correct for both the tsx (src/)
-// and compiled (dist/) layouts — do NOT derive this from __dirname here,
-// which would resolve to backend/frontend/dist (a level too shallow).
+// projectRoot (computed at the top) is correct for the tsx (src/),
+// compiled (dist/), and Docker layouts — the Dockerfile mirrors the
+// monorepo structure (backend/ + frontend/ under /app). Do NOT derive this
+// from __dirname here, which would resolve to backend/frontend/dist
+// (a level too shallow).
 const frontendDist = path.join(projectRoot, "frontend", "dist");
 const hasFrontendBuild = existsSync(frontendDist);
 

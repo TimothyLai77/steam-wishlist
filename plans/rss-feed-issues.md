@@ -38,6 +38,8 @@ Suggested direction (when fixing): probe both candidates and take the first that
 
 Note: `GET /rss` itself still resolves in Docker (registered before the fallback) — but the app behind it doesn't load.
 
+Status: **Fixed** — Dockerfile stage 3 now mirrors the monorepo layout (`/app/backend/{dist,node_modules,prisma,package*.json,prisma.config.ts}` + `/app/frontend/dist`), so `projectRoot` resolves to `/app` in the container. `npm install -g prisma` and the separate `.prisma` copy were dropped (the local CLI in the copied `node_modules` suffices; CMD does `cd backend` first). Verified by running the compiled backend against an exact copy of the container layout: `/` and SPA routes 200, `/rss` 401 JSON before the fallback, migrations applied to a fresh DB.
+
 ---
 
 ## 🟠 Spec deviations
@@ -164,7 +166,7 @@ local SQLite; worth remembering if the daily job ever grows.
 
 ## Manual test checklist (branch is untested)
 
-- [ ] **Docker**: `docker compose up` → load `/` and a wishlist page (expected: **404** — finding #1).
+- [ ] **Docker**: `docker compose up` → load `/` and a wishlist page (finding #1 fixed via Dockerfile layout — verify it loads, no longer 404).
 - [ ] **Dev feed link**: create a link and paste into a reader (expected: 404 on :5173 — finding #5).
 - [ ] Refresh with a real price change → `PriceChangeLog` row; unchanged → no row.
 - [ ] Game in two wishlists → one feed item listing both names.
