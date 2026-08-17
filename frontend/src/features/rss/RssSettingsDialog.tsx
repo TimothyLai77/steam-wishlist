@@ -122,6 +122,7 @@ const RssSettingsDialog = ({ collapsed, onOpen }: RssSettingsDialogProps) => {
   const handleCopy = async () => {
     if (!feedUrl) return;
     try {
+      // This probably doesn't work unless the connection is over HTTPS.
       await navigator.clipboard.writeText(feedUrl);
     } catch {
       return;
@@ -159,9 +160,8 @@ const RssSettingsDialog = ({ collapsed, onOpen }: RssSettingsDialogProps) => {
             <>
               {/* One-time "ticket" chip: the dashed accent border encodes that the URL is single-use */}
               <div
-                className={`rounded border border-dashed border-[var(--accent-border)] bg-[var(--code-bg)] p-3 ${
-                  justCreated ? 'animate-in fade-in-0 duration-150 motion-reduce:animate-none' : ''
-                }`}
+                className={`rounded border border-dashed border-[var(--accent-border)] bg-[var(--code-bg)] p-3 ${justCreated ? 'animate-in fade-in-0 duration-150 motion-reduce:animate-none' : ''
+                  }`}
               >
                 <div className="mb-1 flex justify-end">
                   <span className="font-heading text-[10px] uppercase tracking-wider text-muted-foreground">
