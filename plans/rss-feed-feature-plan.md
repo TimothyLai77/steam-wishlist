@@ -255,8 +255,8 @@ Each task below is self-contained: it includes the context an implementer needs,
 **UX contract:**
 
 - **Trigger:** an "RSS Feed" button with `RssIcon`, placed in the sidebar bottom section **above Logout** (inside `sidebarContent()` in AppLayout, so it appears in both the desktop sidebar and the mobile sheet). Follow the existing collapsed pattern: icon-only with a `title` tooltip when the sidebar is collapsed.
-- **Persistence:** the server cannot return the current URL (`POST /api/rss/token` always rotates), so the dialog persists the last `feedUrl` in `localStorage` (key: `rssFeedUrl`) and shows it across reloads.
-- **State A — no saved URL:**
+- **No persistence:** the link is shown exactly once, at creation. Nothing is stored client-side (no localStorage): the server keeps only a hash and cannot return the URL, and once the dialog closes the link is gone until a new one is created (which rotates the token and invalidates the old one). Creation and closing an un-copied link are therefore guarded by confirms.
+- **State A — create face** (shown whenever no link has been created in this session):
 
   ```
   ┌──────────────────────────────────┐
@@ -268,13 +268,13 @@ Each task below is self-contained: it includes the context an implementer needs,
   │ shown only once.                 │
   │                                  │
   │ ┌──────────────────────────────┐ │
-  │ │ Create feed URL              │ │
+  │ │ Create feed link             │ │
   │ └──────────────────────────────┘ │
   └──────────────────────────────────┘
   ```
 
-  One primary button, **Create feed URL**, with a loading state while the mutation is pending.
-- **State B — URL present** (just created or loaded from localStorage):
+  One primary button, **Create feed link**. Clicking it opens the create/rotate confirm (below) — creation never happens without the warning, because it may invalidate an existing link.
+- **State B — ticket face** (after a link has been created in this session):
 
   ```
   ┌──────────────────────────────────┐
@@ -296,27 +296,29 @@ Each task below is self-contained: it includes the context an implementer needs,
 
 - **Ticket chip (the one deliberate design element):** the URL shown as a one-time "ticket", not a plain input. Read-only `<textarea>` (stays fully selectable as a manual-copy fallback), `break-all` so the long token wraps, `font-heading` (JetBrains Mono — **not** `font-mono`, which is not the app's mono), `text-xs`, background `var(--code-bg)`, ~4px radius, **dashed** border in `var(--accent-border)`. A tiny uppercase mono tag `shown once` sits in the chip's top-right corner. The dashed border encodes the true fact that the URL is one-time-use; everything else in the dialog stays stock.
 - **Copy:** `navigator.clipboard.writeText` with the full URL; the button flips to a check + "Copied" for ~1.5 s (wrap the label in a `role="status"` element for screen readers). No toast — the button is the confirmation.
-- **Regenerate:** **Regenerate link** (outline/neutral — the danger lives in the confirm step, not the first click) opens `ConfirmDialog`: title "Regenerate link?", description "Your current link will stop working. Readers using it won't get updates until you add the new one.", confirm **Regenerate** (destructive variant), cancel **Keep current link**. On confirm: call the mutation, replace the chip's URL (with the reveal animation again), overwrite `rssFeedUrl` in localStorage.
-- **Error state** (mutation failure): one line of destructive-colored text under the primary button: "Couldn't create your link. Check your connection and try again."
-- **Motion:** when a URL is *created* (not on reload from localStorage), the chip mounts with a single ~150 ms fade (`animate-in fade-in-0 duration-150`, matching the dialog's own 100 ms fade/zoom entrance); add `motion-reduce:animate-none`.
+- **Create/rotate confirm:** both **Create feed link** (State A) and **Regenerate link** (State B, outline/neutral — the danger lives in the confirm step, not the first click) open the same `ConfirmDialog`: title "Create new link?", description "The new link is shown only once. If you already have a link in an RSS reader, it will stop working.", confirm **Create link** (destructive variant), cancel **Cancel**. On confirm: call the mutation and show State B (with the reveal animation); on success the previous link is dead server-side.
+- **Close guard:** with a created-but-never-copied link, attempting to close the dialog (X, Esc, or backdrop) opens a `ConfirmDialog`: title "Close without copying?", description "You haven't copied the link yet. If you close now, you won't be able to see it again.", confirm **Close anyway** (destructive), cancel **Keep open**. After a successful copy, closing is unguarded. Every close resets the dialog to State A.
+- **Error state** (mutation failure): one line of destructive-colored text under the description, shown on both faces: "Couldn't create your link. Check your connection and try again."
+- **Motion:** when a link is *created*, the chip mounts with a single ~150 ms fade (`animate-in fade-in-0 duration-150`, matching the dialog's own 100 ms fade/zoom entrance); add `motion-reduce:animate-none`.
 - **Dialog width:** override the default to `sm:max-w-md` (`sm:max-w-sm` is too narrow for the URL).
 - **Mobile:** opening the dialog from the mobile sheet must also close the sheet (AppLayout passes an open-change callback that calls `setMobileOpen(false)` in mobile mode).
 
 **Steps:**
 
 1. `rssApi.ts`: `api.injectEndpoints` with `generateToken: builder.mutation<{ token: string; feedUrl: string }, void>` hitting `/rss/token` (the shared `baseUrl` is already `/api`, and `prepareHeaders` already injects the JWT). Export the generated hook.
-2. `RssSettingsDialog.tsx`: self-contained component owning its open state, the localStorage read, the mutation, and both states above; renders the trigger button and the `Dialog` (with the ticket chip, copy, and regenerate confirm per the UX contract).
+2. `RssSettingsDialog.tsx`: self-contained component owning its open state, the session-only created-link state (no persistence), the mutation, and both faces above; renders the trigger button and the `Dialog` (with the ticket chip, copy, create/rotate confirm, and close guard per the UX contract).
 3. `AppLayout.tsx`: render `<RssSettingsDialog />` in the sidebar bottom section above the Logout button (inside `sidebarContent()`); wire the mobile-sheet-close callback.
 
 - **Definition of done:**
   - "RSS Feed" button visible above Logout in both the desktop sidebar and the mobile sheet; icon-only with tooltip when collapsed.
-  - First open shows State A; **Create feed URL** calls `POST /api/rss/token`, then shows State B with the returned URL; the URL is persisted to localStorage.
-  - Reload the page and reopen the dialog → State B shows the persisted URL with **no** new token request.
+  - Opening the dialog shows the create face; **Create feed link** opens the warning confirm, and confirming calls `POST /api/rss/token`, then shows the ticket face with the returned link.
+  - Nothing is written to localStorage; reload the page and reopen the dialog → create face again.
   - **Copy** places the full URL on the clipboard and flips to "Copied".
-  - **Regenerate link** → confirm → new URL shown and stored; the old URL now returns 401 from `GET /rss`.
-  - **Keep current link** closes the confirm with no request.
+  - **Regenerate link** → same confirm → new URL shown with the reveal; the old URL now returns 401 from `GET /rss`.
+  - Cancelling either confirm makes no request.
+  - Closing the ticket face without having copied triggers the close guard; after copying, closing is direct. Both paths reset to the create face.
   - A mutation failure shows the error line and the dialog remains usable.
-  - Keyboard: Esc closes, focus is trapped, all controls reachable; the chip reveal respects `prefers-reduced-motion`.
+  - Keyboard: Esc closes (respecting the close guard), focus is trapped, all controls reachable; the chip reveal respects `prefers-reduced-motion`.
   - Opening the dialog from the mobile sheet closes the sheet.
   - `npm run build` (frontend) passes.
 
