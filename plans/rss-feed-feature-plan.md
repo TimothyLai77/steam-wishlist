@@ -240,7 +240,7 @@ Each task below is self-contained: it includes the context an implementer needs,
   - `GET /rss?token=...` returns 200 RSS XML; a bad token returns 401.
   - In production mode, `/rss` is not swallowed by the SPA fallback. `npx tsc --noEmit` passes.
 
-### Task 8 — Frontend UI: RSS Feed dialog (sidebar)
+### Task 8 — Frontend UI: RSS Feed dialog (sidebar) Done
 
 - **Depends on:** Task 7
 - **Files:** new `frontend/src/features/rss/RssSettingsDialog.tsx`, new `frontend/src/app/services/rssApi.ts`, `frontend/src/components/Layout/AppLayout.tsx`
