@@ -12,13 +12,6 @@ import { Button } from '../../../components/ui/button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { useGenerateTokenMutation } from '../../app/services/rssApi';
 
-/**
- * localStorage key for the last generated feed URL. The server only keeps
- * a SHA-256 hash of the token, so the UI is the only place that can show
- * the URL again.
- */
-const RSS_FEED_URL_KEY = 'rssFeedUrl';
-
 /** How long the copy button shows "Copied" before reverting to "Copy". */
 const COPIED_FEEDBACK_MS = 1500;
 
@@ -33,26 +26,26 @@ interface RssSettingsDialogProps {
 }
 
 /**
- * Sidebar trigger + dialog for managing the user's RSS feed URL.
+ * Sidebar trigger + dialog for managing the user's RSS feed link.
  *
- * State A (no stored URL) shows a single "Create feed URL" action.
- * State B shows the URL in a one-time "ticket" chip (dashed accent border,
- * code surface, mono type) with Copy and Regenerate actions. The last
- * generated URL is persisted in localStorage because the server can never
- * show it again.
+ * The server only stores a hash of the token, so the link is shown exactly
+ * once — the moment it is created. Nothing is persisted client-side: after
+ * the dialog closes the link is gone, and creating a new one rotates the
+ * token and invalidates any previous link. Both creation/rotation and
+ * closing an un-copied link are therefore guarded by confirmations.
  *
  * @param props - Component props (see {@link RssSettingsDialogProps}).
- * @returns The trigger button, the feed dialog, and the regenerate confirm.
+ * @returns The trigger button, the feed dialog, and its confirm dialogs.
  */
 const RssSettingsDialog = ({ collapsed, onOpen }: RssSettingsDialogProps) => {
   const [open, setOpen] = useState(false);
-  const [feedUrl, setFeedUrl] = useState<string | null>(() =>
-    localStorage.getItem(RSS_FEED_URL_KEY),
-  );
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [feedUrl, setFeedUrl] = useState<string | null>(null);
+  const [hasCopied, setHasCopied] = useState(false);
   const [justCreated, setJustCreated] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createConfirmOpen, setCreateConfirmOpen] = useState(false);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
 
   const [generateToken, { isLoading }] = useGenerateTokenMutation();
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -66,32 +59,52 @@ const RssSettingsDialog = ({ collapsed, onOpen }: RssSettingsDialogProps) => {
   );
 
   /**
-   * Handles the dialog's open state: notifies the parent on open (so the
-   * mobile layout can close its sheet) and resets the one-time reveal flag
-   * on close.
+   * Resets the dialog to its initial face for the next open.
+   *
+   * @returns Nothing.
+   */
+  const reset = () => {
+    setFeedUrl(null);
+    setHasCopied(false);
+    setJustCreated(false);
+    setCopied(false);
+    setError(null);
+  };
+
+  /**
+   * Handles the dialog's open state. Opens notify the parent (so the mobile
+   * layout can close its sheet). Closes are intercepted when a link was
+   * created but never copied — closing without copying makes it
+   * unrecoverable.
    *
    * @param next - The next open state of the dialog.
    * @returns Nothing.
    */
   const handleOpenChange = (next: boolean) => {
-    setOpen(next);
     if (next) {
+      setOpen(true);
       onOpen?.();
-    } else {
-      setJustCreated(false);
+      return;
     }
+    if (feedUrl && !hasCopied) {
+      setCloseConfirmOpen(true);
+      return;
+    }
+    setOpen(false);
+    reset();
   };
 
   /**
-   * Calls the token endpoint and stores the returned feed URL locally.
+   * Calls the token endpoint and shows the returned feed link.
+   * The link is never persisted — the server keeps only a hash.
    *
-   * @returns True when a new URL was created, false on failure.
+   * @returns True when a new link was created, false on failure.
    */
   const handleGenerate = async (): Promise<boolean> => {
     try {
       const result = await generateToken().unwrap();
       setFeedUrl(result.feedUrl);
-      localStorage.setItem(RSS_FEED_URL_KEY, result.feedUrl);
+      setHasCopied(false);
       setJustCreated(true);
       setError(null);
       return true;
@@ -102,31 +115,31 @@ const RssSettingsDialog = ({ collapsed, onOpen }: RssSettingsDialogProps) => {
   };
 
   /**
-   * Confirms a token rotation from the ConfirmDialog. Closes the confirm
+   * Confirms creation/rotation from the confirm dialog. Closes the confirm
    * only on success so a failed request keeps it open for a retry.
    *
    * @returns Nothing.
    */
-  const handleConfirmRegenerate = async () => {
+  const handleConfirmCreate = async () => {
     const ok = await handleGenerate();
-    if (ok) setConfirmOpen(false);
+    if (ok) setCreateConfirmOpen(false);
   };
 
   /**
-   * Copies the feed URL to the clipboard and flips the button to "Copied"
-   * briefly. If the Clipboard API is unavailable (e.g. non-secure
-   * context), the chip text remains manually selectable as a fallback.
+   * Copies the feed link to the clipboard and flips the button to "Copied"
+   * briefly. If the Clipboard API is unavailable (e.g. non-secure context),
+   * the chip text remains manually selectable as a fallback.
    *
    * @returns Nothing.
    */
   const handleCopy = async () => {
     if (!feedUrl) return;
     try {
-      // This probably doesn't work unless the connection is over HTTPS.
       await navigator.clipboard.writeText(feedUrl);
     } catch {
       return;
     }
+    setHasCopied(true);
     setCopied(true);
     if (copyTimer.current) clearTimeout(copyTimer.current);
     copyTimer.current = setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
@@ -156,12 +169,19 @@ const RssSettingsDialog = ({ collapsed, onOpen }: RssSettingsDialogProps) => {
             </DialogDescription>
           </DialogHeader>
 
+          {error && (
+            <p role="alert" className="text-xs text-destructive">
+              {error}
+            </p>
+          )}
+
           {feedUrl ? (
             <>
-              {/* One-time "ticket" chip: the dashed accent border encodes that the URL is single-use */}
+              {/* One-time "ticket" chip: the dashed accent border encodes that the link is single-use */}
               <div
-                className={`rounded border border-dashed border-[var(--accent-border)] bg-[var(--code-bg)] p-3 ${justCreated ? 'animate-in fade-in-0 duration-150 motion-reduce:animate-none' : ''
-                  }`}
+                className={`rounded border border-dashed border-[var(--accent-border)] bg-[var(--code-bg)] p-3 ${
+                  justCreated ? 'animate-in fade-in-0 duration-150 motion-reduce:animate-none' : ''
+                }`}
               >
                 <div className="mb-1 flex justify-end">
                   <span className="font-heading text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -198,7 +218,7 @@ const RssSettingsDialog = ({ collapsed, onOpen }: RssSettingsDialogProps) => {
               <DialogFooter>
                 <Button
                   variant="outline"
-                  onClick={() => setConfirmOpen(true)}
+                  onClick={() => setCreateConfirmOpen(true)}
                   disabled={isLoading}
                 >
                   Regenerate link
@@ -206,32 +226,42 @@ const RssSettingsDialog = ({ collapsed, onOpen }: RssSettingsDialogProps) => {
               </DialogFooter>
             </>
           ) : (
-            <>
-              {error && (
-                <p role="alert" className="text-xs text-destructive">
-                  {error}
-                </p>
-              )}
-              <DialogFooter>
-                <Button onClick={() => void handleGenerate()} disabled={isLoading}>
-                  {isLoading ? 'Creating…' : 'Create feed URL'}
-                </Button>
-              </DialogFooter>
-            </>
+            <DialogFooter>
+              <Button onClick={() => setCreateConfirmOpen(true)} disabled={isLoading}>
+                Create feed link
+              </Button>
+            </DialogFooter>
           )}
         </DialogContent>
       </Dialog>
 
+      {/* Creation/rotation confirm — warns that an existing link would be invalidated */}
       <ConfirmDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        title="Regenerate link?"
-        description="Your current link will stop working. Readers using it won't get updates until you add the new one."
-        confirmLabel="Regenerate"
+        open={createConfirmOpen}
+        onOpenChange={setCreateConfirmOpen}
+        title="Create new link?"
+        description="The new link is shown only once. If you already have a link in an RSS reader, it will stop working."
+        confirmLabel="Create link"
         confirmVariant="destructive"
-        cancelLabel="Keep current link"
-        onConfirm={() => void handleConfirmRegenerate()}
+        cancelLabel="Cancel"
+        onConfirm={() => void handleConfirmCreate()}
         isLoading={isLoading}
+      />
+
+      {/* Close guard — the created link would be unrecoverable */}
+      <ConfirmDialog
+        open={closeConfirmOpen}
+        onOpenChange={setCloseConfirmOpen}
+        title="Close without copying?"
+        description="You haven't copied the link yet. If you close now, you won't be able to see it again."
+        confirmLabel="Close anyway"
+        confirmVariant="destructive"
+        cancelLabel="Keep open"
+        onConfirm={() => {
+          setCloseConfirmOpen(false);
+          setOpen(false);
+          reset();
+        }}
       />
     </>
   );
