@@ -15,6 +15,7 @@ model User {
   passwordHash String
   steamId      String?
   wishlists    Wishlist[]
+  rssTokenHash String?    @unique
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
@@ -41,6 +42,7 @@ model Game {
   imageUrl         String?          @map("image_url")
   priceUpdatedAt   DateTime?        @map("price_updated_at")
   wishlistGames    WishlistGame[]
+  priceChangeLogs  PriceChangeLog[]
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @updatedAt      @map("updated_at")
 }
@@ -56,4 +58,18 @@ model WishlistGame {
 
   @@id([gameId, wishlistId])
   @@map("wishlist_games")
+}
+
+model PriceChangeLog {
+  id          String   @id @default(uuid())
+  gameId      Int
+  game        Game     @relation(fields: [gameId], references: [steamId], onDelete: Cascade)
+  oldPrice    Decimal?
+  newPrice    Decimal?
+  oldDiscount Int?
+  newDiscount Int?
+  timestamp   DateTime @default(now())
+
+  @@index([gameId, timestamp])
+  @@index([timestamp])
 }

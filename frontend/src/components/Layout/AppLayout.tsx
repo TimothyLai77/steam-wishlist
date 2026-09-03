@@ -14,6 +14,7 @@ import {
   SignOutIcon,
 } from '@phosphor-icons/react';
 import { WishlistSection } from './WishlistSection';
+import RssSettingsDialog from '../../features/rss/RssSettingsDialog';
 
 const AppLayout = () => {
   const location = useLocation();
@@ -138,8 +139,12 @@ const AppLayout = () => {
         </div>
       </nav>
 
-      {/* Bottom: Logout */}
+      {/* Bottom: RSS Feed + Logout */}
       <div className="border-t px-2 py-2">
+        <RssSettingsDialog
+          collapsed={collapsed}
+          onOpen={mobileMode ? () => setMobileOpen(false) : undefined}
+        />
         <button
           onClick={handleLogout}
           className={baseLinkClass}

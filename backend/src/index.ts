@@ -15,6 +15,8 @@ process.env.NODE_ENV = appEnv === "production" ? "production" : "development";
 
 const isProduction = appEnv === "production";
 
+import { existsSync } from "fs";
+
 import express from "express";
 import cors from "cors";
 import { prisma } from "./config/prisma.js";
@@ -22,6 +24,7 @@ import { errorHandler } from "./middleware/error.middleware.js";
 import authRoutes from "./routes/auth.routes.js";
 import wishlistRoutes from "./routes/wishlist.routes.js";
 import gameRoutes from "./routes/game.routes.js";
+import rssApiRoutes, { rssFeedRoutes } from "./routes/rss.routes.js";
 import { startPriceRefreshJob } from "./services/price-refresh-job.js";
 
 const app = express();
@@ -49,6 +52,11 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/wishlists", wishlistRoutes);
 app.use("/api", gameRoutes);
+app.use("/api/rss", rssApiRoutes);
+
+// Public RSS feed — must be registered before the production SPA fallback
+// below, or the fallback route swallows it in production.
+app.use("/rss", rssFeedRoutes);
 
 // Health check
 app.get("/health", (_req, res) => {
@@ -66,12 +74,18 @@ app.get("/db", async (_req, res) => {
   }
 });
 
-// Serve built frontend in production
-if (isProduction) {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const frontendDist = path.resolve(__dirname, "../frontend/dist");
+// Serve the built frontend when a production build exists in
+// frontend/dist (local "npm run build + serve" mode) or when running
+// in production (Docker/deploy).
+// projectRoot (computed at the top) is correct for the tsx (src/),
+// compiled (dist/), and Docker layouts — the Dockerfile mirrors the
+// monorepo structure (backend/ + frontend/ under /app). Do NOT derive this
+// from __dirname here, which would resolve to backend/frontend/dist
+// (a level too shallow).
+const frontendDist = path.join(projectRoot, "frontend", "dist");
+const hasFrontendBuild = existsSync(frontendDist);
 
+if (isProduction || hasFrontendBuild) {
   // Serve static files
   app.use(express.static(frontendDist));
 
@@ -86,8 +100,8 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
-  if (isProduction) {
-    console.log("Serving frontend in production mode");
+  if (isProduction || hasFrontendBuild) {
+    console.log("Serving frontend build from frontend/dist");
   }
 
   // Start scheduled price refresh job
