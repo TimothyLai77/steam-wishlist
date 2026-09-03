@@ -23,16 +23,15 @@ RUN npm run build
 FROM node:24-alpine AS production
 WORKDIR /app
 
-# Install Prisma CLI globally for migrations
-COPY --from=backend-builder /app/backend/node_modules/.prisma /app/node_modules/.prisma
-RUN npm install -g prisma
-
+# Mirror the monorepo layout (backend/ + frontend/ under /app) so the
+# backend's projectRoot = path.resolve(__dirname, "../..") resolves to /app
+# and finds the frontend build at /app/frontend/dist.
 # Copy backend dist and node_modules
-COPY --from=backend-builder /app/backend/dist ./dist
-COPY --from=backend-builder /app/backend/node_modules ./node_modules
-COPY --from=backend-builder /app/backend/prisma ./prisma
-COPY --from=backend-builder /app/backend/package*.json ./
-COPY --from=backend-builder /app/backend/prisma.config.ts ./
+COPY --from=backend-builder /app/backend/dist ./backend/dist
+COPY --from=backend-builder /app/backend/node_modules ./backend/node_modules
+COPY --from=backend-builder /app/backend/prisma ./backend/prisma
+COPY --from=backend-builder /app/backend/package*.json ./backend/
+COPY --from=backend-builder /app/backend/prisma.config.ts ./backend/
 
 # Copy frontend dist into backend container
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
@@ -43,5 +42,5 @@ RUN mkdir -p data
 # Expose port
 EXPOSE 4000
 
-# Run migrations then start
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+# Run migrations then start (cd backend so the Prisma CLI finds prisma.config.ts and prisma/)
+CMD ["sh", "-c", "cd backend && npx prisma migrate deploy && node dist/index.js"]

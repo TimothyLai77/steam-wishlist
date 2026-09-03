@@ -57,6 +57,84 @@ export const getGamesByWishlistId = async (
   }));
 };
 
+/**
+ * Persist freshly fetched game data and, when `currentPrice` or
+ * `discountPercent` changed, record the change in `PriceChangeLog`.
+ *
+ * - Row exists and price/discount changed: insert a `PriceChangeLog` row and
+ *   update the `Game` row in a single interactive transaction.
+ * - Row exists but price/discount unchanged: update only the mutable
+ *   non-price fields (name/currency/imageUrl); no log entry.
+ * - Row does not exist: create the `Game` row; no log entry.
+ */
+export const saveGameWithPriceLog = async (
+  steamId: number,
+  data: {
+    name: string;
+    currentPrice: number | null;
+    originalPrice: number | null;
+    discountPercent: number | null;
+    currency: string;
+    imageUrl: string | null;
+  },
+) => {
+  const existing = await prisma.game.findUnique({ where: { steamId } });
+
+  if (!existing) {
+    return prisma.game.create({
+      data: {
+        steamId,
+        name: data.name,
+        currentPrice: data.currentPrice,
+        originalPrice: data.originalPrice,
+        discountPercent: data.discountPercent,
+        currency: data.currency,
+        imageUrl: data.imageUrl,
+      },
+    });
+  }
+
+  const oldPrice = existing.currentPrice === null ? null : existing.currentPrice.toNumber();
+  const newPrice = data.currentPrice === null ? null : data.currentPrice;
+  const oldDiscount = existing.discountPercent === null ? null : existing.discountPercent;
+  const newDiscount = data.discountPercent === null ? null : data.discountPercent;
+
+  if (oldPrice !== newPrice || oldDiscount !== newDiscount) {
+    return prisma.$transaction(async (tx) => {
+      await tx.priceChangeLog.create({
+        data: {
+          gameId: steamId,
+          oldPrice: existing.currentPrice,
+          newPrice: data.currentPrice,
+          oldDiscount: existing.discountPercent,
+          newDiscount: data.discountPercent,
+        },
+      });
+
+      return tx.game.update({
+        where: { steamId },
+        data: {
+          name: data.name,
+          currentPrice: data.currentPrice,
+          originalPrice: data.originalPrice,
+          discountPercent: data.discountPercent,
+          currency: data.currency,
+          imageUrl: data.imageUrl,
+        },
+      });
+    });
+  }
+
+  return prisma.game.update({
+    where: { steamId },
+    data: {
+      name: data.name,
+      currency: data.currency,
+      imageUrl: data.imageUrl,
+    },
+  });
+};
+
 export const addGameToWishlist = async (
   wishlistId: string,
   steamId: number,
@@ -98,27 +176,13 @@ export const addGameToWishlist = async (
   let game;
 
   if (steamData) {
-    game = await prisma.game.upsert({
-      where: { steamId },
-      update: {
-        name: steamData.name,
-        currentPrice: steamData.currentPrice,
-        originalPrice: steamData.originalPrice,
-        discountPercent: steamData.discountPercent,
-        currency: steamData.currency,
-        imageUrl: steamData.imageUrl,
-        priceUpdatedAt: new Date(),
-      },
-      create: {
-        steamId,
-        name: steamData.name,
-        currentPrice: steamData.currentPrice,
-        originalPrice: steamData.originalPrice,
-        discountPercent: steamData.discountPercent,
-        currency: steamData.currency,
-        imageUrl: steamData.imageUrl,
-        priceUpdatedAt: new Date(),
-      },
+    game = await saveGameWithPriceLog(steamId, {
+      name: steamData.name,
+      currentPrice: steamData.currentPrice,
+      originalPrice: steamData.originalPrice,
+      discountPercent: steamData.discountPercent,
+      currency: steamData.currency,
+      imageUrl: steamData.imageUrl,
     });
 
     const wg = await prisma.wishlistGame.create({
@@ -325,16 +389,13 @@ export const refreshGamesInWishlist = async (
     const data = steamData[id];
 
     if (data) {
-      await prisma.game.update({
-        where: { steamId: gameId },
-        data: {
-          name: data.name,
-          currentPrice: data.currentPrice,
-          originalPrice: data.originalPrice,
-          discountPercent: data.discountPercent,
-          currency: data.currency,
-          imageUrl: data.imageUrl,
-        },
+      await saveGameWithPriceLog(gameId, {
+        name: data.name,
+        currentPrice: data.currentPrice,
+        originalPrice: data.originalPrice,
+        discountPercent: data.discountPercent,
+        currency: data.currency,
+        imageUrl: data.imageUrl,
       });
       refreshed++;
     } else {
@@ -388,16 +449,13 @@ export const refreshAllUserGames = async (
     const data = steamData[id];
 
     if (data) {
-      await prisma.game.update({
-        where: { steamId: gameId },
-        data: {
-          name: data.name,
-          currentPrice: data.currentPrice,
-          originalPrice: data.originalPrice,
-          discountPercent: data.discountPercent,
-          currency: data.currency,
-          imageUrl: data.imageUrl,
-        },
+      await saveGameWithPriceLog(gameId, {
+        name: data.name,
+        currentPrice: data.currentPrice,
+        originalPrice: data.originalPrice,
+        discountPercent: data.discountPercent,
+        currency: data.currency,
+        imageUrl: data.imageUrl,
       });
       refreshed++;
     } else {
@@ -434,16 +492,13 @@ export const refreshAllGames = async (): Promise<RefreshGamesResult> => {
     const data = steamData[id];
 
     if (data) {
-      await prisma.game.update({
-        where: { steamId: game.steamId },
-        data: {
-          name: data.name,
-          currentPrice: data.currentPrice,
-          originalPrice: data.originalPrice,
-          discountPercent: data.discountPercent,
-          currency: data.currency,
-          imageUrl: data.imageUrl,
-        },
+      await saveGameWithPriceLog(game.steamId, {
+        name: data.name,
+        currentPrice: data.currentPrice,
+        originalPrice: data.originalPrice,
+        discountPercent: data.discountPercent,
+        currency: data.currency,
+        imageUrl: data.imageUrl,
       });
       refreshed++;
     } else {
