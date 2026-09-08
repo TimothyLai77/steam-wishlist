@@ -5,7 +5,7 @@ import { Feed } from 'feed';
 import { prisma } from '../config/prisma.js';
 import { getRssCache, setRssCache } from './rss-cache.js';
 
-/** Days of price changes included in the feed (matches the log retention window). */
+/** Days of price changes included in the feed */
 const FEED_WINDOW_DAYS = 30;
 
 /** Maximum number of items per feed. */
