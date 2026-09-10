@@ -146,7 +146,7 @@ export const moveGameHandler = async (req: Request, res: Response) => {
  * @returns The parsed `Date`, or `null` when the parameter is absent or empty.
  * @throws {AppError} 400 when the parameter is present but not a valid date.
  */
-const parseDatePara = (value: unknown, name: string): Date | null => {
+const parseDateParam = (value: unknown, name: string): Date | null => {
   if (typeof value !== 'string' || value.trim() === '') {
     return null;
   }
