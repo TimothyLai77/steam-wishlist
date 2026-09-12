@@ -5,9 +5,11 @@ import {
     useGetWishlistsQuery,
     useDeleteGameMutation,
     useRefreshGamesMutation,
+    type GameSummary,
 } from '../../app/services/wishlistApi';
 import { AddGameDialog } from './AddGameDialog';
 import { MoveGameDialog } from './MoveGameDialog';
+import PriceHistorySheet from './PriceHistorySheet';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Button } from '../../../components/ui/button';
 import {
@@ -39,6 +41,7 @@ const WishlistGamesPage = () => {
 
     const [removingGame, setRemovingGame] = useState<{ id: string; name: string } | null>(null);
     const [movingGame, setMovingGame] = useState<{ id: string; name: string } | null>(null);
+    const [historyGame, setHistoryGame] = useState<GameSummary | null>(null);
     const [deleteGame, { isLoading: deleting }] = useDeleteGameMutation();
     const [refreshGames, { isLoading: refreshing }] = useRefreshGamesMutation();
 
@@ -225,6 +228,7 @@ const WishlistGamesPage = () => {
                         formatPrice={formatPrice}
                         onRemoveGame={handleRemoveGame}
                         onMoveGame={handleMoveGame}
+                        onShowHistory={setHistoryGame}
                         showMoveButton={(wishlists?.length ?? 0) > 1}
                     />
                 </Card>
@@ -265,6 +269,18 @@ const WishlistGamesPage = () => {
                     onOpenChange={(open) => {
                         if (!open) {
                             setMovingGame(null);
+                        }
+                    }}
+                />
+            )}
+
+            {historyGame && (
+                <PriceHistorySheet
+                    game={historyGame}
+                    open={!!historyGame}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setHistoryGame(null);
                         }
                     }}
                 />
