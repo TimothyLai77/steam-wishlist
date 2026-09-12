@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { AppError } from '../middleware/error.middleware.js';
 import { prisma } from '../config/prisma.js';
 import { getGamesByWishlistId, addGameToWishlist, removeGameFromWishlist, moveGameToWishlist, refreshGamesInWishlist } from '../services/game.service.js';
-import { getSalePeriods, getPriceAtDate, getPriceRange } from '../services/price-history.service.js';
+import { getSalePeriods, getPriceAtDate, getPriceRange, getTrackingStartedAt } from '../services/price-history.service.js';
 
 export const getGamesHandler = async (req: Request, res: Response) => {
   try {
@@ -168,9 +168,12 @@ const parseDateParam = (value: unknown, name: string): Date | null => {
  * because those are per-wishlist operations.
  *
  * Query parameters select the shape of the response:
- * - none: `{ salePeriods }` — all contiguous sale periods in chronological
- *   order (oldest first); the last entry has `end: null` when a sale is
- *   still ongoing. Empty array when the game has no logged price changes.
+ * - none: `{ salePeriods, trackingStartedAt }` — all contiguous sale periods
+ *   in chronological order (oldest first); the last entry has `end: null`
+ *   when a sale is still ongoing. Empty array when the game has no logged
+ *   price changes. `trackingStartedAt` is the timestamp of the earliest
+ *   logged change (or `null` when the game has no price history), so clients
+ *   can render "tracking started <date>" for lookups before that point.
  * - `date=<ISO 8601>`: `{ state }` — the effective price state at that
  *   point (the state established by the latest change at or before it).
  * - `from=<ISO 8601>&to=<ISO 8601>`: `{ state, constant }` — the state in
@@ -233,8 +236,11 @@ export const getPriceHistoryHandler = async (
       return;
     }
 
-    const salePeriods = await getSalePeriods(steamId);
-    res.json({ salePeriods });
+    const [salePeriods, trackingStartedAt] = await Promise.all([
+      getSalePeriods(steamId),
+      getTrackingStartedAt(steamId),
+    ]);
+    res.json({ salePeriods, trackingStartedAt });
   } catch (err) {
     next(err);
   }

@@ -10,6 +10,9 @@ import { prisma } from '../config/prisma.js';
  *   (discount returned to 0/null), or `null` if the sale is still ongoing.
  * - `price` / `discountPercent` / `originalPrice` reflect the *latest* state
  *   within the period (e.g. after a mid-sale discount deepening).
+ * - `deepenedAt` is the timestamp of the latest mid-sale change that updated
+ *   the period after it opened (e.g. a discount deepening), or `null` when
+ *   the period's state never changed after it opened.
  */
 export interface SalePeriod {
   start: Date;
@@ -17,6 +20,7 @@ export interface SalePeriod {
   price: number | null;
   discountPercent: number;
   originalPrice: number | null;
+  deepenedAt: Date | null;
 }
 
 /**
@@ -77,7 +81,7 @@ const toPriceState = (row: {
  * - If the last row still has `newDiscount > 0`, the final period is ongoing
  *   (`end: null`).
  *
- * @param steamId - The Steam App ID of the game.``
+ * @param steamId - The Steam App ID of the game.
  * @returns Sale periods in chronological order (oldest first); the most
  *   recent period is the last element (and has `end: null` if still on sale).
  *   Returns an empty array if the game has no logged price changes.
@@ -100,6 +104,7 @@ export const getSalePeriods = async (steamId: number): Promise<SalePeriod[]> => 
         current.price = row.newPrice?.toNumber() ?? null;
         current.discountPercent = discount;
         current.originalPrice = row.originalPrice?.toNumber() ?? null;
+        current.deepenedAt = row.timestamp;
       } else {
         current = {
           start: row.timestamp,
@@ -107,6 +112,7 @@ export const getSalePeriods = async (steamId: number): Promise<SalePeriod[]> => 
           price: row.newPrice?.toNumber() ?? null,
           discountPercent: discount,
           originalPrice: row.originalPrice?.toNumber() ?? null,
+          deepenedAt: null,
         };
       }
     } else if (current) {
@@ -123,6 +129,24 @@ export const getSalePeriods = async (steamId: number): Promise<SalePeriod[]> => 
   }
 
   return periods;
+};
+
+/**
+ * Find the timestamp of the earliest logged price change for a game, i.e. the
+ * date from which point-in-time lookups can return data for it.
+ *
+ * @param steamId - The Steam App ID of the game.
+ * @returns The earliest change timestamp, or `null` if the game has no
+ *   logged price changes at all.
+ */
+export const getTrackingStartedAt = async (steamId: number): Promise<Date | null> => {
+  const row = await prisma.priceChangeLog.findFirst({
+    where: { gameId: steamId },
+    orderBy: { timestamp: 'asc' },
+    select: { timestamp: true },
+  });
+
+  return row?.timestamp ?? null;
 };
 
 /**
