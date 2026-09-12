@@ -46,11 +46,12 @@ A new service (e.g. `price-history.service.ts`) with two read-only derivations f
 
 ### 6. Frontend
 
-- Per-game price history view, entered from the wishlist games table (row action opening a detail drawer or page).
-- Shows:
-  - Sale history: list of past sale periods (date range, sale price, discount, original price), most recent first; highlights the last sale.
-  - Point-in-time lookup: a date picker returning the effective price state for that date.
-- New API client method in `frontend/src/app/services` following the existing pattern.
+- **Right-side sheet, not a page.** Entered from a new row action on the wishlist games table (icon button in the actions column, following the existing move/delete buttons). Reuses the existing `Sheet` primitive (`components/ui/sheet.tsx`, currently unused); no new route. Data is fetched lazily (RTK Query `skip` until the sheet is open) so the table never fires one fetch per row.
+- **Header is a price tag, no image.** Game name, current price, struck-through original price, discount badge; a status line ("On sale now · since <date>") when a period is ongoing. No cover image.
+- **Sale history is a vertical timeline, most recent first.** One node per sale period: date range, sale price, discount badge, struck-through original price, and duration ("9 days"; "under a day" for a sale caught by a single poll). The ongoing period pins to the top with a distinct marker and an "On sale now" label; the most recent finished sale stays visually distinguished as the first finished node. Nodes are joined by a plain vertical connector — equal spacing, **no gap labels, no proportional time positioning, no chart library** (plain CSS/Tailwind).
+- **Point-in-time lookup.** A date picker (defaults to today) returning the effective price state for that date: price, discount (or "no discount"), and how long the price has held. Selecting a sale node sets the picker to that sale's start date.
+- **Edge states:** no sale periods → "No sales yet · prices are checked daily"; lookup before the first tracked row → "No data for this date · tracking started <date>" (the API response therefore includes the tracking-start date); a mid-sale price deepening renders as the deepest price plus a small note ("dropped to −50% on <date>"); prices use the game's `currency` field rather than the table's hardcoded `$`.
+- New API client in `frontend/src/app/services` following the existing RTK Query pattern (e.g. `priceHistoryApi.ts`).
 
 ### 7. Tests
 
