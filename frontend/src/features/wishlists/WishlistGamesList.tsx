@@ -77,13 +77,13 @@ const WishlistGamesList: React.FC<WishlistGamesListProps> = ({
                         className="group rounded-md border p-3 hover:shadow-md transition-all duration-200"
                     >
                             {/* Main row: name + price */}
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 min-w-0">
+                            <div className="flex items-start sm:items-center justify-between gap-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 min-w-0">
                                     <span className="font-medium text-sm truncate">
                                         {game.name || `Game ${game.steamId}`}
                                     </span>
                                     {hasDiscount && (
-                                        <SealPercentIcon size={16} weight="fill"  />
+                                        <SealPercentIcon size={16} weight="fill" className="flex-shrink-0" />
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -104,7 +104,7 @@ const WishlistGamesList: React.FC<WishlistGamesListProps> = ({
                             </div>
 
                             {/* Action links */}
-                            <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
+                            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
                                 <a
                                     href={`https://store.steampowered.com/app/${game.steamId}`}
                                     target="_blank"
