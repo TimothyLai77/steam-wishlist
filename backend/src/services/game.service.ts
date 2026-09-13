@@ -106,6 +106,7 @@ export const saveGameWithPriceLog = async (
           gameId: steamId,
           oldPrice: existing.currentPrice,
           newPrice: data.currentPrice,
+          originalPrice: data.originalPrice,
           oldDiscount: existing.discountPercent,
           newDiscount: data.discountPercent,
         },

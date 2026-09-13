@@ -61,14 +61,15 @@ model WishlistGame {
 }
 
 model PriceChangeLog {
-  id          String   @id @default(uuid())
-  gameId      Int
-  game        Game     @relation(fields: [gameId], references: [steamId], onDelete: Cascade)
-  oldPrice    Decimal?
-  newPrice    Decimal?
-  oldDiscount Int?
-  newDiscount Int?
-  timestamp   DateTime @default(now())
+  id            String   @id @default(uuid())
+  gameId        Int
+  game          Game     @relation(fields: [gameId], references: [steamId], onDelete: Cascade)
+  oldPrice      Decimal?
+  newPrice      Decimal?
+  originalPrice Decimal?
+  oldDiscount   Int?
+  newDiscount   Int?
+  timestamp     DateTime @default(now())
 
   @@index([gameId, timestamp])
   @@index([timestamp])

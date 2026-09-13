@@ -12,6 +12,7 @@ import {
     CaretUpDownIcon,
     CaretUpIcon,
     CaretDownIcon,
+    ChartLineUpIcon,
     DatabaseIcon,
     LinkIcon,
     TrashIcon,
@@ -29,6 +30,7 @@ interface WishlistGamesTableProps {
     formatPrice: (price: number | undefined) => string;
     onRemoveGame: (gameId: string, gameName: string) => void;
     onMoveGame: (gameId: string, gameName: string) => void;
+    onShowHistory: (game: GameSummary) => void;
     showMoveButton: boolean;
 }
 
@@ -40,6 +42,7 @@ const WishlistGamesTable: React.FC<WishlistGamesTableProps> = ({
     formatPrice,
     onRemoveGame,
     onMoveGame,
+    onShowHistory,
     showMoveButton,
 }) => {
     const SortIcon = ({ column }: { column: SortKey }) => {
@@ -163,6 +166,16 @@ const WishlistGamesTable: React.FC<WishlistGamesTableProps> = ({
                                     >
                                         <DatabaseIcon size={14} />
                                     </a>
+                                    <button
+                                        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+                                        title="View price history"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onShowHistory(game);
+                                        }}
+                                    >
+                                        <ChartLineUpIcon size={14} />
+                                    </button>
                                     {showMoveButton && (
                                         <button
                                             className="inline-flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
