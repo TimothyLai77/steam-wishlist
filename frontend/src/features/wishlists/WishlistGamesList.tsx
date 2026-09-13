@@ -9,7 +9,7 @@ import {
     LinkIcon,
     TrashIcon,
     ListPlusIcon,
-    FireIcon,
+    SealPercentIcon,
 } from '@phosphor-icons/react';
 
 export type SortKey = 'name' | 'currentPrice' | 'discountPercent' | 'createdAt';
@@ -83,7 +83,7 @@ const WishlistGamesList: React.FC<WishlistGamesListProps> = ({
                                         {game.name || `Game ${game.steamId}`}
                                     </span>
                                     {hasDiscount && (
-                                        <FireIcon size={16} weight="fill" className="text-orange-500 flex-shrink-0" />
+                                        <SealPercentIcon size={16} weight="fill"  />
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0">
