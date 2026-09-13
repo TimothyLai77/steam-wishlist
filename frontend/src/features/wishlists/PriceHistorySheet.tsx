@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { GameSummary } from '../../app/services/wishlistApi';
 import {
     useGetPriceHistoryQuery,
-    useGetPriceAtDateQuery,
+    useGetPriceRangeQuery,
     type SalePeriod,
 } from '../../app/services/priceHistoryApi';
 import {
@@ -79,6 +79,16 @@ const formatDay = (iso: string): string => {
 };
 
 /**
+ * Format a local `YYYY-MM-DD` key as a short day label ("Aug 1"), parsing it
+ * as a local date first (parsing the key directly as a Date would treat it as
+ * UTC and shift the day in negative-offset timezones).
+ *
+ * @param key - A `YYYY-MM-DD` string.
+ * @returns A short human-readable day label.
+ */
+const formatDayKey = (key: string): string => formatDay(keyToDate(key).toISOString());
+
+/**
  * Format a span of time as a short duration ("9 days", "under a day").
  *
  * @param startIso - Start of the span (ISO timestamp).
@@ -133,8 +143,52 @@ const DiscountBadge = ({ percent }: { percent: number }) => (
 );
 
 /**
+ * One row in the range-window list: a day label (plus optional sublabel) on
+ * the left, and the price state — price, struck-through original price, and
+ * a discount badge or "No discount" — on the right.
+ */
+const WindowRow = ({
+    label,
+    sublabel,
+    price,
+    originalPrice,
+    discountPercent,
+    currency,
+}: {
+    label: string;
+    sublabel?: string;
+    price: number | null;
+    originalPrice: number | null;
+    discountPercent: number | null;
+    currency?: string;
+}) => (
+    <div className="flex items-baseline justify-between gap-2 px-1 py-1">
+        <div className="min-w-0">
+            <span className="text-xs font-medium">{label}</span>
+            {sublabel && (
+                <p className="text-[11px] leading-tight text-muted-foreground">{sublabel}</p>
+            )}
+        </div>
+        <div className="flex shrink-0 items-baseline gap-1.5">
+            <span className="text-sm font-medium">{formatPrice(price, currency)}</span>
+            {originalPrice != null && originalPrice !== price && (
+                <span className="text-xs text-muted-foreground line-through">
+                    {formatPrice(originalPrice, currency)}
+                </span>
+            )}
+            {(discountPercent ?? 0) > 0 ? (
+                <DiscountBadge percent={discountPercent ?? 0} />
+            ) : (
+                <span className="text-xs text-muted-foreground">No discount</span>
+            )}
+        </div>
+    </div>
+);
+
+/**
  * One node in the sale-history timeline (a single contiguous sale period).
- * Clicking it reports the sale's start date to the point-in-time lookup.
+ * Clicking it points the range lookup at the sale's window (start through
+ * end, or today while ongoing).
  */
 const SalePeriodNode = ({
     period,
@@ -171,7 +225,7 @@ const SalePeriodNode = ({
         <button
             type="button"
             onClick={() => onSelect(period)}
-            title="View the price on the sale start date"
+            title="Show this sale's window in the lookup below"
             className={`w-full rounded-md px-2 py-2 text-left transition-colors hover:bg-muted/50 ${
                 isFirstFinished ? 'border border-border bg-muted/30' : ''
             }`}
@@ -218,9 +272,19 @@ const SalePeriodNode = ({
 );
 
 /**
+ * A picked date range for the windowed lookup, as local `YYYY-MM-DD` keys.
+ * `to` is `null` while only the start date has been picked.
+ */
+interface PickedRange {
+    from: string;
+    to: string | null;
+}
+
+/**
  * Right-side sheet showing a game's price history: a price-tag header, a
  * vertical sale timeline (most recent first, ongoing pinned to the top), and
- * a point-in-time price lookup with a date picker defaulting to today.
+ * a windowed price lookup between two picked dates — the state at the start
+ * of the window plus every price change inside it.
  *
  * Data is fetched lazily via RTK Query `skip` — nothing loads while the
  * sheet is closed, so the games table never fires one fetch per row.
@@ -230,7 +294,7 @@ const PriceHistorySheet: React.FC<PriceHistorySheetProps> = ({
     open,
     onOpenChange,
 }) => {
-    const [selectedDate, setSelectedDate] = useState(() => toDateKey(new Date()));
+    const [range, setRange] = useState<PickedRange | null>(null);
     const lookupRef = useRef<HTMLDivElement>(null);
 
     const { data: history, isLoading: historyLoading } = useGetPriceHistoryQuery(
@@ -239,14 +303,17 @@ const PriceHistorySheet: React.FC<PriceHistorySheetProps> = ({
     );
 
     const {
-        data: stateResult,
-        isLoading: stateLoading,
-        isError: stateError,
-    } = useGetPriceAtDateQuery(
-        { steamId: game.steamId, date: selectedDate },
-        { skip: !open }
+        data: rangeResult,
+        isLoading: rangeLoading,
+        isError: rangeError,
+    } = useGetPriceRangeQuery(
+        {
+            steamId: game.steamId,
+            from: range?.from ?? '',
+            to: range?.to ?? '',
+        },
+        { skip: !open || !range?.to }
     );
-    const priceState = stateResult?.state;
 
     // Newest first; the last backend entry is the ongoing sale (if any).
     const periods = useMemo(
@@ -257,25 +324,24 @@ const PriceHistorySheet: React.FC<PriceHistorySheetProps> = ({
     const firstFinishedIndex = ongoing != null ? 1 : 0;
 
     const onSale = (game.discountPercent ?? 0) > 0;
-    const originalPrice = ongoing?.originalPrice ?? priceState?.originalPrice;
+    const originalPrice = ongoing?.originalPrice;
     const showOriginal =
         onSale && originalPrice != null && originalPrice !== game.currentPrice;
 
+    /**
+     * Point the range lookup at a sale period: its start through its end
+     * (through today while ongoing), so the window shows the whole sale.
+     *
+     * @param period - The sale period the user clicked in the timeline.
+     * @returns Nothing; updates the lookup range and scrolls it into view.
+     */
     const handlePeriodSelect = (period: SalePeriod) => {
-        setSelectedDate(toDateKey(new Date(period.start)));
+        setRange({
+            from: toDateKey(new Date(period.start)),
+            to: period.end ? toDateKey(new Date(period.end)) : toDateKey(new Date()),
+        });
         lookupRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     };
-
-    // How long the looked-up state had held: from its establishing change to
-    // the end of the picked day (capped at now when a future date is picked).
-    const heldUntil = useMemo(() => {
-        const lookupEnd = keyToDate(selectedDate);
-        lookupEnd.setDate(lookupEnd.getDate() + 1);
-        // "now" is intentionally read at render time: it only caps the
-        // duration when a future date is picked, and re-renders keep it fresh.
-        // eslint-disable-next-line react-hooks/purity -- intentional render-time "now"
-        return new Date(Math.min(lookupEnd.getTime(), Date.now())).toISOString();
-    }, [selectedDate]);
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
@@ -335,11 +401,11 @@ const PriceHistorySheet: React.FC<PriceHistorySheetProps> = ({
                                 )}
                             </section>
 
-                            {/* Point-in-time lookup */}
+                            {/* Windowed lookup between two dates */}
                             <section ref={lookupRef} className="scroll-mt-4">
                                 <h2 className="mb-3 flex items-center gap-1.5 text-sm font-medium">
                                     <CalendarBlankIcon size={16} className="text-muted-foreground" />
-                                    Price on a date
+                                    Price between dates
                                 </h2>
                                 <div className="space-y-3">
                                     <Popover>
@@ -350,14 +416,11 @@ const PriceHistorySheet: React.FC<PriceHistorySheetProps> = ({
                                                     size="sm"
                                                     className="justify-between"
                                                 >
-                                                    {keyToDate(selectedDate).toLocaleDateString(
-                                                        undefined,
-                                                        {
-                                                            month: 'short',
-                                                            day: 'numeric',
-                                                            year: 'numeric',
-                                                        }
-                                                    )}
+                                                    {range
+                                                        ? range.to
+                                                            ? `${formatDayKey(range.from)} – ${formatDayKey(range.to)}`
+                                                            : `${formatDayKey(range.from)} → pick end date`
+                                                        : 'Pick a date range'}
                                                     <CalendarBlankIcon size={14} />
                                                 </Button>
                                             }
@@ -368,53 +431,95 @@ const PriceHistorySheet: React.FC<PriceHistorySheetProps> = ({
                                             sideOffset={6}
                                         >
                                             <Calendar
-                                                mode="single"
-                                                selected={keyToDate(selectedDate)}
-                                                defaultMonth={keyToDate(selectedDate)}
-                                                onSelect={(day) => {
-                                                    if (day) {
-                                                        setSelectedDate(toDateKey(day));
-                                                    }
-                                                }}
+                                                mode="range"
+                                                selected={
+                                                    range
+                                                        ? {
+                                                              from: keyToDate(range.from),
+                                                              to: range.to
+                                                                  ? keyToDate(range.to)
+                                                                  : undefined,
+                                                          }
+                                                        : undefined
+                                                }
+                                                defaultMonth={
+                                                    range ? keyToDate(range.from) : undefined
+                                                }
+                                                onSelect={(picked) =>
+                                                    setRange(
+                                                        picked?.from
+                                                            ? {
+                                                                  from: toDateKey(picked.from),
+                                                                  to: picked.to
+                                                                      ? toDateKey(picked.to)
+                                                                      : null,
+                                                              }
+                                                            : null
+                                                    )
+                                                }
                                             />
                                         </PopoverContent>
                                     </Popover>
 
-                                    {stateLoading ? (
+                                    {rangeLoading ? (
                                         <p className="text-muted-foreground">Looking up...</p>
-                                    ) : stateError ? (
+                                    ) : rangeError ? (
                                         <p className="text-muted-foreground">
-                                            No data for this date
+                                            No data for this range
                                             {history?.trackingStartedAt
                                                 ? ` · tracking started ${formatDay(history.trackingStartedAt)}`
                                                 : ''}
                                         </p>
-                                    ) : priceState ? (
-                                        <div className="space-y-1">
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-lg font-semibold">
-                                                    {formatPrice(priceState.price, game.currency)}
-                                                </span>
-                                                {priceState.originalPrice != null &&
-                                                    priceState.originalPrice !== priceState.price && (
-                                                        <span className="text-xs text-muted-foreground line-through">
-                                                            {formatPrice(priceState.originalPrice, game.currency)}
-                                                        </span>
-                                                    )}
-                                                {(priceState.discountPercent ?? 0) > 0 ? (
-                                                    <DiscountBadge percent={priceState.discountPercent!} />
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        No discount
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-muted-foreground">
-                                                Held for {formatDuration(priceState.since, heldUntil)} ·
-                                                since {formatDay(priceState.since)}
-                                            </p>
+                                    ) : rangeResult && range?.to ? (
+                                        <div>
+                                            {rangeResult.startState ? (
+                                                <WindowRow
+                                                    label={`As of ${formatDayKey(range.from)}`}
+                                                    sublabel={`held since ${formatDay(
+                                                        rangeResult.startState.since
+                                                    )}`}
+                                                    price={rangeResult.startState.price}
+                                                    originalPrice={rangeResult.startState.originalPrice}
+                                                    discountPercent={
+                                                        rangeResult.startState.discountPercent
+                                                    }
+                                                    currency={game.currency}
+                                                />
+                                            ) : (
+                                                <p className="px-1 py-0.5 text-xs text-muted-foreground">
+                                                    Tracking started within this range.
+                                                </p>
+                                            )}
+                                            {rangeResult.changes.length === 0 ? (
+                                                <p className="px-1 pt-1 text-xs text-muted-foreground">
+                                                    No price changes in this range — the price
+                                                    held the whole span.
+                                                </p>
+                                            ) : (
+                                                rangeResult.changes.map((change, index) => (
+                                                    <WindowRow
+                                                        key={change.timestamp}
+                                                        label={formatDay(change.timestamp)}
+                                                        sublabel={
+                                                            index === 0 &&
+                                                            !rangeResult.startState
+                                                                ? 'tracking started'
+                                                                : undefined
+                                                        }
+                                                        price={change.price}
+                                                        originalPrice={change.originalPrice}
+                                                        discountPercent={change.discountPercent}
+                                                        currency={game.currency}
+                                                    />
+                                                ))
+                                            )}
                                         </div>
-                                    ) : null}
+                                    ) : (
+                                        <p className="text-muted-foreground">
+                                            Pick a start and end date to see the price history
+                                            between them.
+                                        </p>
+                                    )}
                                 </div>
                             </section>
                         </>

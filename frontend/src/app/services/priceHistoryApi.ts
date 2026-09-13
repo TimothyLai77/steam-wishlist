@@ -56,6 +56,39 @@ export interface PriceAtDateResult {
 }
 
 /**
+ * One logged price change within a range window (as returned by the backend):
+ * the new state the change establishes, with the timestamp it was logged.
+ * Dates are ISO 8601 strings.
+ */
+export interface PriceChangeEntry {
+  timestamp: string;
+  price: number | null;
+  originalPrice: number | null;
+  discountPercent: number | null;
+}
+
+/**
+ * Response of the date-range lookup: the windowed price history between two
+ * dates.
+ *
+ * - `state` is the state in effect at the end of the range.
+ * - `constant` is `true` when no change fell strictly inside the range.
+ * - `startState` is the state in effect at the start of the range, or `null`
+ *   when tracking began after the range start (i.e. the first change is
+ *   inside the window).
+ * - `changes` lists every change strictly inside the range, oldest first.
+ * - `trackingStartedAt` is the earliest logged change, or `null` when the
+ *   game has no price history at all.
+ */
+export interface PriceRangeResult {
+  state: PriceState;
+  constant: boolean;
+  startState: PriceState | null;
+  changes: PriceChangeEntry[];
+  trackingStartedAt: string | null;
+}
+
+/**
  * Arguments for the point-in-time lookup. `date` is a local calendar date in
  * `YYYY-MM-DD` form (as produced by the date picker); the query serializes it
  * to the end of that day so changes logged on the picked day are included.
@@ -63,6 +96,17 @@ export interface PriceAtDateResult {
 export interface PriceAtDateArgs {
   steamId: string;
   date: string;
+}
+
+/**
+ * Arguments for the date-range lookup. `from` / `to` are local calendar dates
+ * in `YYYY-MM-DD` form; the query serializes them to the start of `from` and
+ * the end of `to` (server-local) so both picked days are fully covered.
+ */
+export interface PriceRangeArgs {
+  steamId: string;
+  from: string;
+  to: string;
 }
 
 /**
@@ -100,8 +144,29 @@ export const priceHistoryApi = api.injectEndpoints({
       query: ({ steamId, date }) =>
         `/games/${steamId}/price-history?date=${date}T23:59:59.999`,
     }),
+
+    /**
+     * Look up the windowed price history between two dates: the state in
+     * effect at the start of the range (or `null` when tracking began inside
+     * it) plus every change strictly inside the range, oldest first.
+     *
+     * Returns 404 when no price change has been logged at or before the end
+     * of the range (i.e. the whole range predates the game's tracking start).
+     *
+     * @param steamId - The Steam App ID of the game.
+     * @param from - A `YYYY-MM-DD` local calendar date (range start).
+     * @param to - A `YYYY-MM-DD` local calendar date (range end, ≥ from).
+     */
+    getPriceRange: builder.query<PriceRangeResult, PriceRangeArgs>({
+      query: ({ steamId, from, to }) =>
+        `/games/${steamId}/price-history?from=${from}T00:00:00&to=${to}T23:59:59.999`,
+    }),
   }),
 });
 
 // Export hooks for usage in components
-export const { useGetPriceHistoryQuery, useGetPriceAtDateQuery } = priceHistoryApi;
+export const {
+  useGetPriceHistoryQuery,
+  useGetPriceAtDateQuery,
+  useGetPriceRangeQuery,
+} = priceHistoryApi;
