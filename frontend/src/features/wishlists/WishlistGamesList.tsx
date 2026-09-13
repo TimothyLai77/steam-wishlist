@@ -1,5 +1,4 @@
 import type { GameSummary } from '../../app/services/wishlistApi';
-import { Card, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import {
     CaretUpDownIcon,
@@ -73,15 +72,14 @@ const WishlistGamesList: React.FC<WishlistGamesListProps> = ({
             {games.map((game: GameSummary) => {
                 const hasDiscount = game.discountPercent !== undefined && game.discountPercent > 0;
                 return (
-                    <Card
+                    <div
                         key={game.steamId}
-                        className="group hover:shadow-md transition-all duration-200"
+                        className="group rounded-md border p-3 hover:shadow-md transition-all duration-200"
                     >
-                        <CardContent className="p-4">
                             {/* Main row: name + price */}
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 min-w-0">
-                                    <span className="font-medium truncate">
+                                    <span className="font-medium text-sm truncate">
                                         {game.name || `Game ${game.steamId}`}
                                     </span>
                                     {hasDiscount && (
@@ -89,7 +87,7 @@ const WishlistGamesList: React.FC<WishlistGamesListProps> = ({
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0">
-                                    <span className={hasDiscount ? 'font-semibold' : ''}>
+                                    <span className={hasDiscount ? 'text-sm font-semibold' : 'text-sm'}>
                                         {formatPrice(game.currentPrice)}
                                     </span>
                                     {game.currency && (
@@ -106,7 +104,7 @@ const WishlistGamesList: React.FC<WishlistGamesListProps> = ({
                             </div>
 
                             {/* Action links */}
-                            <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                            <div className="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground">
                                 <a
                                     href={`https://store.steampowered.com/app/${game.steamId}`}
                                     target="_blank"
@@ -153,8 +151,7 @@ const WishlistGamesList: React.FC<WishlistGamesListProps> = ({
                                     <TrashIcon size={12} /> Delete
                                 </button>
                             </div>
-                        </CardContent>
-                    </Card>
+                    </div>
                 );
             })}
         </div>
