@@ -176,8 +176,12 @@ const parseDateParam = (value: unknown, name: string): Date | null => {
  *   can render "tracking started <date>" for lookups before that point.
  * - `date=<ISO 8601>`: `{ state }` — the effective price state at that
  *   point (the state established by the latest change at or before it).
- * - `from=<ISO 8601>&to=<ISO 8601>`: `{ state, constant }` — the state in
- *   effect at `to`, plus whether it held unchanged across the whole range.
+ * - `from=<ISO 8601>&to=<ISO 8601>`: `{ state, constant, startState,
+ *   changes, trackingStartedAt }` — the state in effect at `to`, whether it
+ *   held unchanged across the whole range, the state in effect at `from`
+ *   (`null` when tracking began after `from`), every change strictly inside
+ *   the range oldest first (the windowed price history), and the earliest
+ *   logged change timestamp (`null` when the game has no price history).
  *
  * @param req - Request; `steamId` path param and optional `date` / `from` / `to` query params.
  * @param res - Express response; receives the JSON payload.
@@ -228,11 +232,14 @@ export const getPriceHistoryHandler = async (
     }
 
     if (from && to) {
-      const report = await getPriceRange(steamId, from, to);
+      const [report, trackingStartedAt] = await Promise.all([
+        getPriceRange(steamId, from, to),
+        getTrackingStartedAt(steamId),
+      ]);
       if (!report) {
-        throw new AppError(404, 'No price history at or before the requested range');
+        throw new AppError(404, 'No price history at or before the end of the requested range');
       }
-      res.json(report);
+      res.json({ ...report, trackingStartedAt });
       return;
     }
 

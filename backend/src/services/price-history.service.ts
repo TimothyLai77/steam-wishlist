@@ -37,15 +37,46 @@ export interface PriceState {
 }
 
 /**
+/**
+ * One logged price change, as it appears in a range-window report: the new
+ * state the row establishes, with the timestamp it was logged.
+ */
+export interface PriceChangeEntry {
+  timestamp: Date;
+  price: number | null;
+  originalPrice: number | null;
+  discountPercent: number | null;
+}
+
+/**
  * Point-in-time lookup result for a date range.
  *
- * `state` is the effective price state at the *end* of the range.
- * `constant` is `true` when no change row falls strictly inside the range
- * (i.e. the state held unchanged across the whole span).
+ * - `state` is the effective price state at the *end* of the range.
+ * - `constant` is `true` when no change row falls strictly inside the range
+ *   (i.e. the state held unchanged across the whole span).
+ * - `startState` is the state in effect at the *start* of the range (the
+ *   latest change at or before `from`), or `null` when tracking of the game
+ *   began after `from` (i.e. the first logged change falls inside the range).
+ * - `changes` lists every change row strictly inside the range
+ *   (`from` < timestamp ≤ `to`), oldest first — the windowed price history.
  */
 export interface PriceRangeReport {
   state: PriceState;
   constant: boolean;
+  startState: PriceState | null;
+  changes: PriceChangeEntry[];
+}
+
+/**
+ * Structural shape of a `PriceChangeLog` row as consumed by the converters
+ * below (the "new" fields are the state after the change; `Decimal` fields
+ * are matched structurally via `toNumber`).
+ */
+interface PriceChangeLogRow {
+  newPrice: { toNumber(): number } | null;
+  originalPrice: { toNumber(): number } | null;
+  newDiscount: number | null;
+  timestamp: Date;
 }
 
 /**
@@ -54,16 +85,24 @@ export interface PriceRangeReport {
  * @param row - A `PriceChangeLog` row (the "new" fields are the state after the change).
  * @returns The {@link PriceState} in effect from `row.timestamp` onward.
  */
-const toPriceState = (row: {
-  newPrice: { toNumber(): number } | null;
-  originalPrice: { toNumber(): number } | null;
-  newDiscount: number | null;
-  timestamp: Date;
-}): PriceState => ({
+const toPriceState = (row: PriceChangeLogRow): PriceState => ({
   price: row.newPrice?.toNumber() ?? null,
   originalPrice: row.originalPrice?.toNumber() ?? null,
   discountPercent: row.newDiscount,
   since: row.timestamp,
+});
+
+/**
+ * Convert a delta log row into a {@link PriceChangeEntry} for range reports.
+ *
+ * @param row - A `PriceChangeLog` row (the "new" fields are the state after the change).
+ * @returns The change as a flat, JSON-friendly entry.
+ */
+const toChangeEntry = (row: PriceChangeLogRow): PriceChangeEntry => ({
+  timestamp: row.timestamp,
+  price: row.newPrice?.toNumber() ?? null,
+  originalPrice: row.originalPrice?.toNumber() ?? null,
+  discountPercent: row.newDiscount,
 });
 
 /**
@@ -169,13 +208,18 @@ export const getPriceAtDate = async (steamId: number, date: Date): Promise<Price
 };
 
 /**
- * Look up the effective price state of a game over a date range.
+ * Look up the effective price state of a game over a date range, including
+ * the windowed price history (every change that happened inside the range).
  *
- * The reported state is the one in effect at `to`. `constant` is `true` when
+ * The reported `state` is the one in effect at `to`. `constant` is `true` when
  * no change row falls strictly inside the range (`from` < timestamp ≤ `to`),
  * meaning the state held unchanged across the whole span; a change row
  * exactly at `from` does *not* count as a change within the range because the
- * new state applies for the entire span after it.
+ * new state applies for the entire span after it. `startState` is the state
+ * in effect at `from` (latest change at or before it), and `changes` lists
+ * every change strictly inside the range, oldest first.
+ *
+ * All derivations come from a single query of the rows at or before `to`.
  *
  * @param steamId - The Steam App ID of the game.
  * @param from - Start of the range (inclusive).
@@ -188,17 +232,23 @@ export const getPriceRange = async (
   from: Date,
   to: Date,
 ): Promise<PriceRangeReport | null> => {
-  const row = await prisma.priceChangeLog.findFirst({
+  const rows = await prisma.priceChangeLog.findMany({
     where: { gameId: steamId, timestamp: { lte: to } },
     orderBy: { timestamp: 'desc' },
   });
 
-  if (!row) {
+  const latest = rows[0];
+  if (!latest) {
     return null;
   }
 
+  const changes = rows.filter((row) => row.timestamp > from).reverse().map(toChangeEntry);
+  const startRow = rows.find((row) => row.timestamp <= from) ?? null;
+
   return {
-    state: toPriceState(row),
-    constant: row.timestamp <= from,
+    state: toPriceState(latest),
+    constant: changes.length === 0,
+    startState: startRow ? toPriceState(startRow) : null,
+    changes,
   };
 };
