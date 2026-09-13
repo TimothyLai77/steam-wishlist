@@ -24,10 +24,10 @@ import {
     ArrowClockwiseIcon,
     TrashIcon,
 } from '@phosphor-icons/react';
-import WishlistGamesTable, {
+import WishlistGamesList, {
     type SortKey,
     type SortDir,
-} from './WishlistGamesTable';
+} from './WishlistGamesList';
 
 const WishlistGamesPage = () => {
     const { id: wishlistId } = useParams<{ id: string }>();
@@ -219,19 +219,17 @@ const WishlistGamesPage = () => {
                     </CardContent>
                 </Card>
             ) : (
-                <Card>
-                    <WishlistGamesTable
-                        games={sortedGames}
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={handleSort}
-                        formatPrice={formatPrice}
-                        onRemoveGame={handleRemoveGame}
-                        onMoveGame={handleMoveGame}
-                        onShowHistory={setHistoryGame}
-                        showMoveButton={(wishlists?.length ?? 0) > 1}
-                    />
-                </Card>
+                <WishlistGamesList
+                    games={sortedGames}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={handleSort}
+                    formatPrice={formatPrice}
+                    onRemoveGame={handleRemoveGame}
+                    onMoveGame={handleMoveGame}
+                    onShowHistory={setHistoryGame}
+                    showMoveButton={(wishlists?.length ?? 0) > 1}
+                />
             )}
 
             {removingGame && wishlistId && (
