@@ -16,6 +16,15 @@ import {
 export type SortKey = 'name' | 'currentPrice' | 'discountPercent' | 'createdAt';
 export type SortDir = 'asc' | 'desc';
 
+const SortIcon = ({ column, sortKey, sortDir }: { column: SortKey; sortKey: SortKey; sortDir: SortDir }) => {
+    if (sortKey !== column) {
+        return <CaretUpDownIcon size={14} weight="light" className="text-muted-foreground" />;
+    }
+    return sortDir === 'asc'
+        ? <CaretUpIcon size={14} weight="bold" />
+        : <CaretDownIcon size={14} weight="bold" />;
+};
+
 interface WishlistGamesListProps {
     games: GameSummary[];
     sortKey: SortKey;
@@ -39,15 +48,6 @@ const WishlistGamesList: React.FC<WishlistGamesListProps> = ({
     onShowHistory,
     showMoveButton,
 }) => {
-    const SortIcon = ({ column }: { column: SortKey }) => {
-        if (sortKey !== column) {
-            return <CaretUpDownIcon size={14} weight="light" className="text-muted-foreground" />;
-        }
-        return sortDir === 'asc'
-            ? <CaretUpIcon size={14} weight="bold" />
-            : <CaretDownIcon size={14} weight="bold" />;
-    };
-
     return (
         <div className="space-y-3">
             {/* Sort header */}
@@ -58,13 +58,13 @@ const WishlistGamesList: React.FC<WishlistGamesListProps> = ({
                         onClick={() => onSort('currentPrice')}
                         className="flex items-center gap-1 hover:text-foreground transition-colors"
                     >
-                        Price <SortIcon column="currentPrice" />
+                        Price <SortIcon column="currentPrice" sortKey={sortKey} sortDir={sortDir} />
                     </button>
                     <button
                         onClick={() => onSort('createdAt')}
                         className="flex items-center gap-1 hover:text-foreground transition-colors"
                     >
-                        Added <SortIcon column="createdAt" />
+                        Added <SortIcon column="createdAt" sortKey={sortKey} sortDir={sortDir} />
                     </button>
                 </div>
             </div>
