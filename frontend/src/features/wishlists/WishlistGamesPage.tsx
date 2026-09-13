@@ -142,7 +142,7 @@ const WishlistGamesPage = () => {
     return (
         <div className="space-y-6 p-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" size="icon" onClick={() => navigate('/wishlists')}>
@@ -161,18 +161,19 @@ const WishlistGamesPage = () => {
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={handleRefresh}
                         disabled={refreshing}
+                        className="flex-1 sm:flex-none"
                     >
                         <ArrowClockwiseIcon size={16} className={`mr-1 ${refreshing ? 'animate-spin' : ''}`} />
                         {refreshing ? 'Refreshing...' : 'Refresh'}
                     </Button>
                     <AddGameDialog wishlistId={wishlistId || ''} triggerNode={
-                        <Button size="sm">
+                        <Button size="sm" className="flex-1 sm:flex-none">
                             <PlusIcon size={16} weight="bold" className="mr-1" />
                             Add Game
                         </Button>
