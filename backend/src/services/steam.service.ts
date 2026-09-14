@@ -33,6 +33,14 @@ const STEAM_STORE_BASE_URL = 'https://store.steampowered.com/api/appdetails';
 const getSteamApiCC = (): string => process.env.STEAM_API_CC ?? 'US';
 
 /**
+ * Checks whether a string is a valid SteamID64 format (17 digits).
+ *
+ * @param steamId - The value to check.
+ * @returns `true` when `steamId` is exactly 17 digits.
+ */
+export const isValidSteamId64 = (steamId: string): boolean => /^\d{17}$/.test(steamId);
+
+/**
  * Tracks in-flight requests for each appID to avoid duplicate concurrent requests.
  */
 const inFlightRequests = new Map<string, Promise<SteamGameDetails | null>>();
@@ -185,7 +193,7 @@ const WISHLIST_API_URL = 'https://api.steampowered.com/IWishlistService/GetWishl
 export const getSteamWishlist = async (
   steamId: string,
 ): Promise<SteamWishlistItem[]> => {
-  if (!/^\d{17}$/.test(steamId)) {
+  if (!isValidSteamId64(steamId)) {
     throw new AppError(400, 'Steam ID must be a 17-digit SteamID64', 'INVALID_STEAM_ID');
   }
 
