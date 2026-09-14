@@ -128,7 +128,7 @@ This allows admins to adjust the sync time without code changes.
    - Migrate existing price refresh job to use new scheduler
    - Centralize configuration and error handling
 
-2. **Add `syncedFromSteam` field to Wishlist model**
+2. **Add `syncedFromSteam` field to Wishlist model** DONE
    - Update Prisma schema
    - Run migration (migration might have to be manually run by the user. Prisma requires the migration to be run interactively)
 
