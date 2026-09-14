@@ -98,6 +98,7 @@ export const updateProfile = async (
       throw new AppError(400, "steamId must be a string", "INVALID_STEAM_ID");
     }
 
+    // Missing/empty input clears the ID; a present value must be 17 digits.
     const steamId = raw === undefined || raw === null || raw.trim() === "" ? null : raw.trim();
     const user = await updateUserSteamId(userId, steamId);
     res.json({ user });
