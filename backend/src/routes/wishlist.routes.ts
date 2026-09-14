@@ -7,6 +7,7 @@ import {
   updateWishlistHandler,
   deleteWishlistHandler,
   getAllGames,
+  syncFromSteamHandler,
 } from '../controllers/wishlist.controller.js';
 import { getGamesHandler, addGameHandler, refreshGamesHandler } from '../controllers/game.controller.js';
 
@@ -17,6 +18,9 @@ router.use(authenticate);
 
 router.get('/', getWishlists);
 router.get('/all-games', getAllGames);
+
+// Steam sync — must come before /:wishlistId so "sync-from-steam" isn't captured as an ID
+router.post('/sync-from-steam', syncFromSteamHandler);
 
 // Wishlist-scoped game routes must come before :wishlistId to avoid being captured as the ID
 router.get('/:wishlistId/games', getGamesHandler);

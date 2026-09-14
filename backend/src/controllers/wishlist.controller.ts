@@ -7,6 +7,7 @@ import {
   updateWishlist,
   deleteWishlist,
   getAllGamesForUser,
+  syncFromSteam,
   type CreateWishlistInput,
   type UpdateWishlistInput,
 } from "../services/wishlist.service.js";
@@ -136,6 +137,24 @@ export const getAllGames = async (
     const { userId } = req.user!;
     const allGames = await getAllGamesForUser(userId);
     res.json(allGames);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Import the authenticated user's public Steam wishlist into their
+ * "Synced from Steam" wishlist (created on first run, replaced on each).
+ */
+export const syncFromSteamHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { userId } = req.user!;
+    const result = await syncFromSteam(userId);
+    res.json(result);
   } catch (err) {
     next(err);
   }
