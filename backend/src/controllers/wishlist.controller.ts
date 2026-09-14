@@ -7,10 +7,10 @@ import {
   updateWishlist,
   deleteWishlist,
   getAllGamesForUser,
-  syncFromSteam,
   type CreateWishlistInput,
   type UpdateWishlistInput,
 } from "../services/wishlist.service.js";
+import { syncFromSteam } from "../services/steam-sync.service.js";
 
 /**
  * Get all wishlists for the authenticated user.

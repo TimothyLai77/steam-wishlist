@@ -1,6 +1,5 @@
 import { prisma } from "../config/prisma.js";
 import { AppError } from "../middleware/error.middleware.js";
-import { getSteamWishlist, type SteamWishlistItem } from "../services/steam.service.js";
 
 export interface CreateWishlistInput {
   name: string;
@@ -251,87 +250,4 @@ export const deleteWishlist = async (
   return { success: true };
 };
 
-export interface SyncFromSteamResult {
-  wishlistId: string;
-  imported: number;
-}
 
-/**
- * Find (or create) the user's "Synced from Steam" wishlist and replace its
- * contents entirely with the user's current public Steam wishlist.
- *
- * Games are imported with placeholder names (`Game <appid>`); the daily price
- * refresh job fills in real store data afterwards, which keeps this endpoint
- * well within Steam's rate limits (a single wishlist fetch per call).
- *
- * @param userId - Authenticated user performing the sync.
- * @returns The synced wishlist id and the number of imported games.
- * @throws {AppError} 404 USER_NOT_FOUND, 400 NO_STEAM_ID when the user has no
- *   Steam ID64 saved, and the task-3 codes (INVALID_STEAM_ID 400,
- *   WISHLIST_NOT_PUBLIC / STEAM_API_ERROR 502) when the Steam fetch fails.
- */
-export const syncFromSteam = async (userId: string): Promise<SyncFromSteamResult> => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, steamId: true },
-  });
-
-  if (!user) {
-    throw new AppError(404, "User not found.", "USER_NOT_FOUND");
-  }
-  if (!user.steamId) {
-    throw new AppError(
-      400,
-      "No Steam ID64 saved. Set your Steam ID in Settings first.",
-      "NO_STEAM_ID",
-    );
-  }
-
-  const items: SteamWishlistItem[] = await getSteamWishlist(user.steamId);
-
-  // Find the existing synced wishlist, or create one.
-  let wishlist = await prisma.wishlist.findFirst({
-    where: { userId, syncedFromSteam: true },
-    select: { id: true },
-  });
-  if (!wishlist) {
-    wishlist = await prisma.wishlist.create({
-      data: { userId, name: "Synced from Steam", syncedFromSteam: true },
-      select: { id: true },
-    });
-  }
-
-  const wishlistId = wishlist.id;
-
-  await prisma.$transaction(async (tx) => {
-    // Ensure Game rows exist for every appid (placeholder for new ones).
-    const existingGames = await tx.game.findMany({
-      where: { steamId: { in: items.map((i) => i.appid) } },
-      select: { steamId: true },
-    });
-    const existing = new Set(existingGames.map((g) => g.steamId));
-    const missing = items.filter((i) => !existing.has(i.appid));
-    if (missing.length > 0) {
-      await tx.game.createMany({
-        data: missing.map((i) => ({
-          steamId: i.appid,
-          name: `Game ${i.appid}`,
-          currency: "USD",
-        })),
-      });
-    }
-
-    // Replace the synced wishlist's games entirely.
-    await tx.wishlistGame.deleteMany({ where: { wishlistId } });
-    await tx.wishlistGame.createMany({
-      data: items.map((i) => ({
-        gameId: i.appid,
-        wishlistId,
-        rank: i.priority,
-        addedAt: new Date(i.date_added * 1000),
-      })),
-    });
-  });
-
-  return { wishlistId, imported: items.length };
-};

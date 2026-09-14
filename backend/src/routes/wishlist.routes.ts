@@ -9,6 +9,7 @@ import {
   getAllGames,
   syncFromSteamHandler,
 } from '../controllers/wishlist.controller.js';
+
 import { getGamesHandler, addGameHandler, refreshGamesHandler } from '../controllers/game.controller.js';
 
 const router = Router();

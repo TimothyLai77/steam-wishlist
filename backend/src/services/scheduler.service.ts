@@ -1,5 +1,6 @@
 import schedule from 'node-schedule';
 import { refreshAllGames } from './game.service.js';
+import { syncAllSteamWishlists } from './steam-sync.service.js';
 
 /**
  * Options describing a daily scheduled job.
@@ -124,6 +125,21 @@ export const startScheduler = (): void => {
     handler: async () => {
       const result = await refreshAllGames();
       return `${result.refreshed} refreshed, ${result.failed} failed`;
+    },
+  });
+
+  registerDailyJob({
+    name: 'STEAM-SYNC',
+    envPrefix: 'STEAM_SYNC',
+    defaultHour: 14,
+    defaultMinute: 0,
+    defaultTimezone: 'America/New_York',
+    handler: async () => {
+      const s = await syncAllSteamWishlists();
+      const failed = s.failed.length
+        ? `; failed: ${s.failed.map((f) => `${f.userId.slice(0, 8)}(${f.code ?? 'ERROR'})`).join(', ')}`
+        : '';
+      return `${s.synced}/${s.users} users synced, ${s.totalGames} games imported${failed}`;
     },
   });
 };
