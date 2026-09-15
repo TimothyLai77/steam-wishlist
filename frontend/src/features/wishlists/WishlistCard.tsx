@@ -65,7 +65,8 @@ export const WishlistCard = ({
             </DropdownMenu>
 
             <CardContent className="pt-3 pb-3 px-4">
-                <div className="flex items-center gap-2 mb-1">
+                {/* pr-8 keeps the name/badge clear of the hover dot menu (top-right, 32px wide) */}
+                <div className="flex items-center gap-2 mb-1 pr-8">
                     <ListIcon size={18} weight="fill" className="text-primary -translate-y-0.75" />
                     <h2 className="text-lg font-semibold leading-none truncate">{name}</h2>
                     {syncedFromSteam && (
