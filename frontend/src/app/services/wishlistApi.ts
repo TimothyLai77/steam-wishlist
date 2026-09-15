@@ -8,6 +8,8 @@ export interface Wishlist {
   createdAt: string;
   updatedAt: string;
   gameCount: number;
+  /** True for the wishlist synced from the user's Steam account. */
+  syncedFromSteam: boolean;
 }
 
 export interface CreateWishlistPayload {

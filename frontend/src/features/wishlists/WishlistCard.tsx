@@ -10,6 +10,7 @@ import {
     DotsThreeVerticalIcon,
     ListIcon,
     PencilSimpleIcon,
+    SteamLogoIcon,
     TrashIcon,
 } from '@phosphor-icons/react';
 
@@ -17,6 +18,8 @@ interface WishlistCardProps {
     id: string;
     name: string;
     gameCount: number;
+    /** Shows the Steam badge next to the name when true. */
+    syncedFromSteam?: boolean;
     onRename: (id: string, name: string) => void;
     onDelete: (id: string, name: string) => void;
     deleting: boolean;
@@ -26,6 +29,7 @@ export const WishlistCard = ({
     id,
     name,
     gameCount,
+    syncedFromSteam = false,
     onRename,
     onDelete,
     deleting,
@@ -64,6 +68,15 @@ export const WishlistCard = ({
                 <div className="flex items-center gap-2 mb-1">
                     <ListIcon size={18} weight="fill" className="text-primary -translate-y-0.75" />
                     <h2 className="text-lg font-semibold leading-none truncate">{name}</h2>
+                    {syncedFromSteam && (
+                        <span
+                            title="Synced from Steam"
+                            className="ml-auto inline-flex shrink-0 items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary"
+                        >
+                            <SteamLogoIcon size={12} weight="fill" />
+                            Steam
+                        </span>
+                    )}
                 </div>
                 <p className="text-sm text-muted-foreground text-left">
                     {gameCount === 1 ? '1 game' : `${gameCount} games`}

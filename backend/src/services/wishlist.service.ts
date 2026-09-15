@@ -17,6 +17,7 @@ export interface WishlistResponse {
   description: string | null;
   userId: string;
   gameCount: number;
+  syncedFromSteam: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,6 +58,7 @@ export const getWishlistsByUser = async (userId: string): Promise<WishlistRespon
     description: w.description,
     userId: w.userId,
     gameCount: w._count.games,
+    syncedFromSteam: w.syncedFromSteam,
     createdAt: w.createdAt,
     updatedAt: w.updatedAt,
   }));
@@ -92,6 +94,7 @@ export const getWishlistById = async (
     description: wishlist.description,
     userId: wishlist.userId,
     gameCount: wishlist._count.games,
+    syncedFromSteam: wishlist.syncedFromSteam,
     createdAt: wishlist.createdAt,
     updatedAt: wishlist.updatedAt,
     games: wishlist.games.map((wg) => ({
@@ -139,6 +142,7 @@ export const createWishlist = async (
     description: wishlist.description,
     userId: wishlist.userId,
     gameCount: wishlist._count.games,
+    syncedFromSteam: wishlist.syncedFromSteam,
     createdAt: wishlist.createdAt,
     updatedAt: wishlist.updatedAt,
   };
@@ -179,6 +183,7 @@ export const updateWishlist = async (
     description: wishlist.description,
     userId: wishlist.userId,
     gameCount: wishlist._count.games,
+    syncedFromSteam: wishlist.syncedFromSteam,
     createdAt: wishlist.createdAt,
     updatedAt: wishlist.updatedAt,
   };
