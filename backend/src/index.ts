@@ -19,7 +19,6 @@ import { existsSync } from "fs";
 
 import express from "express";
 import cors from "cors";
-import { prisma } from "./config/prisma.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import authRoutes from "./routes/auth.routes.js";
 import wishlistRoutes from "./routes/wishlist.routes.js";
@@ -61,17 +60,6 @@ app.use("/rss", rssFeedRoutes);
 // Health check
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
-});
-
-// Test DB connection
-app.get("/db", async (_req, res) => {
-  try {
-    await prisma.$connect();
-    const count = await prisma.user.count();
-    res.json({ connected: true, userCount: count });
-  } catch (err) {
-    res.status(500).json({ connected: false, error: String(err) });
-  }
 });
 
 // Serve the built frontend when a production build exists in
