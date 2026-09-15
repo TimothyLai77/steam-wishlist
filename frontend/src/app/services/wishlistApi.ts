@@ -8,6 +8,8 @@ export interface Wishlist {
   createdAt: string;
   updatedAt: string;
   gameCount: number;
+  /** True for the wishlist synced from the user's Steam account. */
+  syncedFromSteam: boolean;
 }
 
 export interface CreateWishlistPayload {
@@ -183,6 +185,18 @@ export const wishlistApi = api.injectEndpoints({
         method: 'POST',
       }),
     }),
+
+    /**
+     * Import the current user's public Steam wishlist (creates/replaces the
+     * "Synced from Steam" wishlist).
+     */
+    syncFromSteam: builder.mutation<{ wishlistId: string; imported: number }, void>({
+      query: () => ({
+        url: '/wishlists/sync-from-steam',
+        method: 'POST',
+      }),
+      invalidatesTags: ['Wishlist', 'Game'],
+    }),
   }),
 });
 
@@ -199,4 +213,5 @@ export const {
   useDeleteGameMutation,
   useMoveGameMutation,
   useRefreshGamesMutation,
+  useSyncFromSteamMutation,
 } = wishlistApi;

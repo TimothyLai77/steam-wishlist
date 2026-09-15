@@ -43,6 +43,18 @@ export const authApi = api.injectEndpoints({
       query: () => '/auth/profile',
       providesTags: ['User'],
     }),
+
+    /**
+     * Save or clear the current user's Steam ID64.
+     */
+    updateProfile: builder.mutation<ProfileResponse, { steamId: string | null }>({
+      query: (payload) => ({
+        url: '/auth/profile',
+        method: 'PUT',
+        body: payload,
+      }),
+      invalidatesTags: ['User'],
+    }),
   }),
 });
 
@@ -51,4 +63,5 @@ export const {
   usePostRegisterMutation,
   usePostLoginMutation,
   useGetProfileQuery,
+  useUpdateProfileMutation,
 } = authApi;

@@ -14,7 +14,9 @@ import {
   SignOutIcon,
 } from '@phosphor-icons/react';
 import { WishlistSection } from './WishlistSection';
+import VersionBadge from './VersionBadge';
 import RssSettingsDialog from '../../features/rss/RssSettingsDialog';
+import SettingsDialog from '../../features/settings/SettingsDialog';
 
 const AppLayout = () => {
   const location = useLocation();
@@ -139,8 +141,12 @@ const AppLayout = () => {
         </div>
       </nav>
 
-      {/* Bottom: RSS Feed + Logout */}
+      {/* Bottom: Settings + RSS Feed + Logout */}
       <div className="border-t px-2 py-2">
+        <SettingsDialog
+          collapsed={collapsed}
+          onOpen={mobileMode ? () => setMobileOpen(false) : undefined}
+        />
         <RssSettingsDialog
           collapsed={collapsed}
           onOpen={mobileMode ? () => setMobileOpen(false) : undefined}
@@ -152,6 +158,7 @@ const AppLayout = () => {
           <SignOutIcon size={18} />
           {!collapsed && <span>Logout</span>}
         </button>
+        <VersionBadge collapsed={collapsed} />
       </div>
     </div>
   );

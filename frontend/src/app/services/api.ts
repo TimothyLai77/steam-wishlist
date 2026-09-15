@@ -10,7 +10,7 @@ const baseUrl = '/api';
  * - tagTypes: global registry for cache invalidation
  *
  * Domain-specific endpoints are injected via injectEndpoints() in separate
- * service files (authApi.ts, wishlistApi.ts).
+ * service files (authApi.ts, wishlistApi.ts, priceHistoryApi.ts).
  */
 export const api = createApi({
   reducerPath: 'api',
@@ -24,7 +24,7 @@ export const api = createApi({
       return headers;
     },
   }),
-  tagTypes: ['User', 'Wishlist', 'Game'],
+  tagTypes: ['User', 'Wishlist', 'Game', 'PriceHistory'],
   endpoints: () => ({
     // No endpoints defined here. Injected in domain service files.
   }),

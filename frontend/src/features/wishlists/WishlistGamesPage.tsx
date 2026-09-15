@@ -5,9 +5,11 @@ import {
     useGetWishlistsQuery,
     useDeleteGameMutation,
     useRefreshGamesMutation,
+    type GameSummary,
 } from '../../app/services/wishlistApi';
 import { AddGameDialog } from './AddGameDialog';
 import { MoveGameDialog } from './MoveGameDialog';
+import PriceHistorySheet from './PriceHistorySheet';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Button } from '../../../components/ui/button';
 import {
@@ -22,10 +24,10 @@ import {
     ArrowClockwiseIcon,
     TrashIcon,
 } from '@phosphor-icons/react';
-import WishlistGamesTable, {
+import WishlistGamesList, {
     type SortKey,
     type SortDir,
-} from './WishlistGamesTable';
+} from './WishlistGamesList';
 
 const WishlistGamesPage = () => {
     const { id: wishlistId } = useParams<{ id: string }>();
@@ -39,6 +41,7 @@ const WishlistGamesPage = () => {
 
     const [removingGame, setRemovingGame] = useState<{ id: string; name: string } | null>(null);
     const [movingGame, setMovingGame] = useState<{ id: string; name: string } | null>(null);
+    const [historyGame, setHistoryGame] = useState<GameSummary | null>(null);
     const [deleteGame, { isLoading: deleting }] = useDeleteGameMutation();
     const [refreshGames, { isLoading: refreshing }] = useRefreshGamesMutation();
 
@@ -139,7 +142,7 @@ const WishlistGamesPage = () => {
     return (
         <div className="space-y-6 p-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" size="icon" onClick={() => navigate('/wishlists')}>
@@ -158,18 +161,19 @@ const WishlistGamesPage = () => {
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={handleRefresh}
                         disabled={refreshing}
+                        className="flex-1 sm:flex-none"
                     >
                         <ArrowClockwiseIcon size={16} className={`mr-1 ${refreshing ? 'animate-spin' : ''}`} />
                         {refreshing ? 'Refreshing...' : 'Refresh'}
                     </Button>
                     <AddGameDialog wishlistId={wishlistId || ''} triggerNode={
-                        <Button size="sm">
+                        <Button size="sm" className="flex-1 sm:flex-none">
                             <PlusIcon size={16} weight="bold" className="mr-1" />
                             Add Game
                         </Button>
@@ -216,18 +220,17 @@ const WishlistGamesPage = () => {
                     </CardContent>
                 </Card>
             ) : (
-                <Card>
-                    <WishlistGamesTable
-                        games={sortedGames}
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={handleSort}
-                        formatPrice={formatPrice}
-                        onRemoveGame={handleRemoveGame}
-                        onMoveGame={handleMoveGame}
-                        showMoveButton={(wishlists?.length ?? 0) > 1}
-                    />
-                </Card>
+                <WishlistGamesList
+                    games={sortedGames}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onSort={handleSort}
+                    formatPrice={formatPrice}
+                    onRemoveGame={handleRemoveGame}
+                    onMoveGame={handleMoveGame}
+                    onShowHistory={setHistoryGame}
+                    showMoveButton={(wishlists?.length ?? 0) > 1}
+                />
             )}
 
             {removingGame && wishlistId && (
@@ -265,6 +268,18 @@ const WishlistGamesPage = () => {
                     onOpenChange={(open) => {
                         if (!open) {
                             setMovingGame(null);
+                        }
+                    }}
+                />
+            )}
+
+            {historyGame && (
+                <PriceHistorySheet
+                    game={historyGame}
+                    open={!!historyGame}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setHistoryGame(null);
                         }
                     }}
                 />

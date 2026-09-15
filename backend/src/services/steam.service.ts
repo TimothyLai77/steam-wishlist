@@ -1,4 +1,5 @@
 import { steamQueue } from '../lib/steamQueue.js';
+import { AppError } from '../middleware/error.middleware.js';
 
 export interface SteamGameDetails {
   success: boolean;
@@ -30,6 +31,14 @@ interface SteamApiResponse {
 const STEAM_STORE_BASE_URL = 'https://store.steampowered.com/api/appdetails';
 
 const getSteamApiCC = (): string => process.env.STEAM_API_CC ?? 'US';
+
+/**
+ * Checks whether a string is a valid SteamID64 format (17 digits).
+ *
+ * @param steamId - The value to check.
+ * @returns `true` when `steamId` is exactly 17 digits.
+ */
+export const isValidSteamId64 = (steamId: string): boolean => /^\d{17}$/.test(steamId);
 
 /**
  * Tracks in-flight requests for each appID to avoid duplicate concurrent requests.
@@ -146,4 +155,76 @@ export const fetchGameDetailsBatch = async (
   }
 
   return results;
+};
+
+// ---------------------------------------------------------------------------
+// Steam wishlist (IWishlistService/GetWishlist/v1)
+// ---------------------------------------------------------------------------
+
+export interface SteamWishlistItem {
+  appid: number;
+  priority: number;
+  date_added: number;
+}
+
+interface SteamWishlistApiResponse {
+  response?: {
+    items?: SteamWishlistItem[];
+  };
+}
+
+const WISHLIST_API_URL = 'https://api.steampowered.com/IWishlistService/GetWishlist/v1/';
+
+/**
+ * Fetch the public Steam wishlist for a SteamID64.
+ *
+ * Steam's behaviour per input:
+ * - valid 17-digit ID with a public wishlist -> `{ response: { items: [...] } }`
+ * - public wishlist with zero games -> `{ response: { items: [] } }`
+ * - private wishlist or unknown ID -> `{ response: {} }` (HTTP 200)
+ * - malformed ID (not 17 digits) -> HTTP 400
+ *
+ * @param steamId - The user's SteamID64 as a string.
+ * @returns The wishlist items (`appid`, `priority`, `date_added`), possibly empty.
+ * @throws {AppError} 400 `INVALID_STEAM_ID` when the steamId is not 17 digits;
+ *   502 `WISHLIST_NOT_PUBLIC` when the wishlist is private/unknown;
+ *   502 `STEAM_API_ERROR` on HTTP/network failures.
+ */
+export const getSteamWishlist = async (
+  steamId: string,
+): Promise<SteamWishlistItem[]> => {
+  if (!isValidSteamId64(steamId)) {
+    throw new AppError(400, 'Steam ID must be a 17-digit SteamID64', 'INVALID_STEAM_ID');
+  }
+
+  let data: SteamWishlistApiResponse;
+  try {
+    const response = await steamQueue.add(() =>
+      fetch(`${WISHLIST_API_URL}?steamid=${encodeURIComponent(steamId)}`),
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    }
+
+    data = (await response.json()) as SteamWishlistApiResponse;
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    console.error(`Failed to fetch Steam wishlist for ${steamId}:`, error);
+    throw new AppError(502, 'Could not reach the Steam API', 'STEAM_API_ERROR');
+  }
+
+  const items = data.response?.items;
+  if (!Array.isArray(items)) {
+    // `{ response: {} }` means the wishlist is private or the ID is unknown.
+    throw new AppError(
+      502,
+      'Steam wishlist is not public or Steam ID is invalid',
+      'WISHLIST_NOT_PUBLIC',
+    );
+  }
+
+  return items;
 };

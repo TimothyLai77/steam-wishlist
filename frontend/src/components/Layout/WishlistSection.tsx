@@ -2,7 +2,7 @@ import { type Wishlist } from '../../app/services/wishlistApi';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../../components/ui/collapsible';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../components/ui/dropdown-menu';
 import { Button } from '../../../components/ui/button';
-import { ListIcon, CaretDownIcon } from '@phosphor-icons/react';
+import { ListIcon, CaretDownIcon, SteamLogoIcon } from '@phosphor-icons/react';
 
 interface WishlistSectionProps {
   collapsed: boolean;
@@ -66,7 +66,12 @@ export const WishlistSection = ({
                   className={`flex items-center justify-between ${isWishlistActive(wishlist.id) ? activeLinkClass : ''
                     }`}
                 >
-                  <span className="ml-2 truncate">{wishlist.name}</span>
+                  <span className="ml-2 flex min-w-0 items-center gap-1.5">
+                    {wishlist.syncedFromSteam && (
+                      <SteamLogoIcon size={12} weight="fill" className="shrink-0" />
+                    )}
+                    <span className="truncate">{wishlist.name}</span>
+                  </span>
                   <span className="mr-2 text-[10px] text-muted-foreground">
                     {wishlist.gameCount ?? 0}
                   </span>
@@ -114,7 +119,11 @@ export const WishlistSection = ({
                   className={`ml-6 flex items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-accent hover:text-accent-foreground ${isWishlistActive(wishlist.id) ? activeLinkClass : ''
                     }`}
                 >
-                  <ListIcon size={12} weight={isWishlistActive(wishlist.id) ? 'fill' : 'regular'} />
+                  {wishlist.syncedFromSteam ? (
+                    <SteamLogoIcon size={12} weight="fill" className="shrink-0" />
+                  ) : (
+                    <ListIcon size={12} weight={isWishlistActive(wishlist.id) ? 'fill' : 'regular'} />
+                  )}
                   <span className="truncate">{wishlist.name}</span>
                   <span className="ml-auto text-[10px] text-muted-foreground">
                     {wishlist.gameCount ?? 0}
