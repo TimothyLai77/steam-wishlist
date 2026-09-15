@@ -25,7 +25,7 @@ import authRoutes from "./routes/auth.routes.js";
 import wishlistRoutes from "./routes/wishlist.routes.js";
 import gameRoutes from "./routes/game.routes.js";
 import rssApiRoutes, { rssFeedRoutes } from "./routes/rss.routes.js";
-import { startPriceRefreshJob } from "./services/price-refresh-job.js";
+import { startScheduler } from "./services/scheduler.service.js";
 
 const app = express();
 
@@ -104,8 +104,8 @@ app.listen(PORT, () => {
     console.log("Serving frontend build from frontend/dist");
   }
 
-  // Start scheduled price refresh job
-  startPriceRefreshJob();
+  // Start scheduled jobs (price refresh, etc.)
+  startScheduler();
 });
 
 export default app;

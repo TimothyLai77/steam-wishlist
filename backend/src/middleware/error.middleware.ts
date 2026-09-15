@@ -1,12 +1,15 @@
 import type { Request, Response, NextFunction } from "express";
 
 /**
- * Generic error class with an optional HTTP status and public message.
+ * Generic error class with an optional HTTP status, public message, and
+ * stable machine-readable code (e.g. `WISHLIST_NOT_PUBLIC`) that clients
+ * can switch on without parsing the message text.
  */
 export class AppError extends Error {
     constructor(
         public readonly statusCode: number = 500,
         message: string,
+        public readonly code?: string,
     ) {
         super(message);
         this.name = "AppError";
@@ -31,5 +34,6 @@ export const errorHandler = (
 
     res.status(statusCode).json({
         error: message,
+        ...(err instanceof AppError && err.code ? { code: err.code } : {}),
     });
 };

@@ -157,12 +157,13 @@ const WishlistsPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {wishlists.map((wishlist: { id: string; name: string; gameCount: number }) => (
+          {wishlists.map((wishlist) => (
             <WishlistCard
               key={wishlist.id}
               id={wishlist.id}
               name={wishlist.name}
               gameCount={wishlist.gameCount}
+              syncedFromSteam={wishlist.syncedFromSteam}
               onRename={openRenameDialog}
               onDelete={openDeleteDialog}
               deleting={deleting}
