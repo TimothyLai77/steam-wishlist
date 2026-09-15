@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import path from "path";
+import { createRequire } from "module";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,6 +27,21 @@ import gameRoutes from "./routes/game.routes.js";
 import rssApiRoutes, { rssFeedRoutes } from "./routes/rss.routes.js";
 import { startScheduler } from "./services/scheduler.service.js";
 
+/**
+ * Load the app version from backend/package.json — the single source of
+ * truth. `createRequire` works in both dev (tsx) and compiled (dist) ESM.
+ * Path is resolved from projectRoot so it is identical in every layout.
+ *
+ * @returns the semver string from package.json, or "unknown" if unreadable
+ */
+const getAppVersion = (): string => {
+  const require = createRequire(import.meta.url);
+  const pkg = require(path.join(projectRoot, "backend", "package.json"));
+  return typeof pkg.version === "string" ? pkg.version : "unknown";
+};
+
+const APP_VERSION = getAppVersion();
+
 const app = express();
 
 const PORT = process.env.PORT ?? 4000;
@@ -47,6 +63,14 @@ app.use(
 // Basic middleware
 app.use(express.json());
 
+// App version — public, no auth. Lets users/monitoring identify the build.
+// NOTE: must be registered before the `/api` route mounts below —
+// game.routes.ts applies `router.use(authenticate)`, which rejects any
+// unmatched `/api/*` path with 401 before it can reach the next handlers.
+app.get("/api/version", (_req, res) => {
+  res.json({ name: "steam-wishlist", version: APP_VERSION });
+});
+
 // Routes (API)
 app.use("/api/auth", authRoutes);
 app.use("/api/wishlists", wishlistRoutes);
@@ -59,7 +83,7 @@ app.use("/rss", rssFeedRoutes);
 
 // Health check
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
+  res.json({ status: "ok", version: APP_VERSION });
 });
 
 // Serve the built frontend when a production build exists in

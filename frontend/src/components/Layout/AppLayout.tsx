@@ -14,6 +14,7 @@ import {
   SignOutIcon,
 } from '@phosphor-icons/react';
 import { WishlistSection } from './WishlistSection';
+import VersionBadge from './VersionBadge';
 import RssSettingsDialog from '../../features/rss/RssSettingsDialog';
 import SettingsDialog from '../../features/settings/SettingsDialog';
 
@@ -157,6 +158,7 @@ const AppLayout = () => {
           <SignOutIcon size={18} />
           {!collapsed && <span>Logout</span>}
         </button>
+        <VersionBadge collapsed={collapsed} />
       </div>
     </div>
   );
