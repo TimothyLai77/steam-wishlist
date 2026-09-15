@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { GearIcon, SteamLogoIcon, SpinnerIcon } from '@phosphor-icons/react';
 import {
   Dialog,
@@ -54,12 +54,13 @@ const SettingsDialog = ({ collapsed, onOpen }: SettingsDialogProps) => {
   const [updateProfile] = useUpdateProfileMutation();
   const [syncFromSteam, { isLoading: importing }] = useSyncFromSteamMutation();
 
-  // Prefill the input once the profile (with steamId) has loaded.
-  useEffect(() => {
-    if (profile && !profileFetching) {
-      setInput(profile.user.steamId ?? '');
-    }
-  }, [profile, profileFetching]);
+  // Prefill the input from the saved profile each time the dialog opens.
+  // (The profile loads with the app layout, so it is ready by the time of a click.)
+  const handleOpen = () => {
+    setInput(profile?.user.steamId ?? '');
+    setOpen(true);
+    onOpen?.();
+  };
 
   /**
    * Saves the Steam ID from the input, or clears it when the input is empty.
@@ -109,10 +110,7 @@ const SettingsDialog = ({ collapsed, onOpen }: SettingsDialogProps) => {
       {/* Sidebar trigger (matches the RSS Feed button styling) */}
       <button
         type="button"
-        onClick={() => {
-          setOpen(true);
-          onOpen?.();
-        }}
+        onClick={handleOpen}
         title={collapsed ? 'Settings' : undefined}
         className={`flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${collapsed ? 'justify-center' : ''}`}
       >
