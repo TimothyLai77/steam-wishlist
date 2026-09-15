@@ -55,6 +55,18 @@ export const syncFromSteam = async (userId: string): Promise<SyncFromSteamResult
   const wishlistId = wishlist.id;
 
   await prisma.$transaction(async (tx) => {
+    // Concurrent syncs can race the find-or-create above and produce
+    // duplicates; keep the first and drop the rest (games cascade-delete).
+    const synced = await tx.wishlist.findMany({
+      where: { userId, syncedFromSteam: true },
+      select: { id: true },
+    });
+    if (synced.length > 1) {
+      await tx.wishlist.deleteMany({
+        where: { id: { in: synced.slice(1).map((w) => w.id) } },
+      });
+    }
+
     // Ensure Game rows exist for every appid (placeholder for new ones).
     const existingGames = await tx.game.findMany({
       where: { steamId: { in: items.map((i) => i.appid) } },
